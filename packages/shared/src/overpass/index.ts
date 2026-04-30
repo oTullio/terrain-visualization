@@ -4,3 +4,4 @@
  */
 export * from './buildings.js';
 export * from './water.js';
+export * from './roads.js';
