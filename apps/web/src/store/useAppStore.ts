@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { BoundingBox } from '@terrain/shared';
+import type GeoJSON from 'geojson';
 
 // ---------------------------------------------------------------------------
 // Selection slice
@@ -11,6 +12,12 @@ export type SelectionShape = 'rectangle' | 'polygon';
 export interface SelectionState {
   /** The active bounding box, or null if nothing is selected. */
   bbox: BoundingBox | null;
+  /**
+   * The confirmed selection polygon (rectangle or freehand polygon),
+   * or null if nothing is confirmed yet.
+   * Phase B2 will use this for client-side clipping of rendered features.
+   */
+  selectionPolygon: GeoJSON.Polygon | null;
   /** The shape mode used for selection. */
   shape: SelectionShape;
   /** Whether the selection panel is open. */
@@ -18,7 +25,13 @@ export interface SelectionState {
 }
 
 export interface SelectionActions {
+  /** (Existing) Write only the bounding box. Preserved for backward compatibility. */
   setBbox: (bbox: BoundingBox | null) => void;
+  /**
+   * (New) Atomically write both the polygon and its derived bounding box.
+   * Use this after the user confirms a selection in the SelectionMap.
+   */
+  setSelection: (selection: { polygon: GeoJSON.Polygon; bbox: BoundingBox }) => void;
   setShape: (shape: SelectionShape) => void;
   setSelectionOpen: (open: boolean) => void;
   clearSelection: () => void;
@@ -73,12 +86,16 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       // --- Selection ---
       bbox: null,
+      selectionPolygon: null,
       shape: 'rectangle',
       isOpen: false,
       setBbox: (bbox) => set({ bbox }, false, 'selection/setBbox'),
+      setSelection: ({ polygon, bbox }) =>
+        set({ selectionPolygon: polygon, bbox }, false, 'selection/setSelection'),
       setShape: (shape) => set({ shape }, false, 'selection/setShape'),
       setSelectionOpen: (open) => set({ isOpen: open }, false, 'selection/setOpen'),
-      clearSelection: () => set({ bbox: null }, false, 'selection/clear'),
+      clearSelection: () =>
+        set({ bbox: null, selectionPolygon: null }, false, 'selection/clear'),
 
       // --- Layers ---
       visible: { ...DEFAULT_LAYER_VISIBILITY },
