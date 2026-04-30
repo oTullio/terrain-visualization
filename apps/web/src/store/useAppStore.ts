@@ -4,6 +4,21 @@ import type { BoundingBox } from '@terrain/shared';
 import type GeoJSON from 'geojson';
 
 // ---------------------------------------------------------------------------
+// Surface drape slice
+// ---------------------------------------------------------------------------
+
+/** The three switchable surface drape modes. */
+export type SurfaceDrape = 'satellite' | 'hillshade' | 'topographic';
+
+export interface SurfaceDrapeState {
+  surfaceDrape: SurfaceDrape;
+}
+
+export interface SurfaceDrapeActions {
+  setSurfaceDrape: (mode: SurfaceDrape) => void;
+}
+
+// ---------------------------------------------------------------------------
 // Selection slice
 // ---------------------------------------------------------------------------
 
@@ -100,7 +115,9 @@ export type AppState = SelectionState &
   ToolState &
   ToolActions &
   LayerStatusState &
-  LayerStatusActions;
+  LayerStatusActions &
+  SurfaceDrapeState &
+  SurfaceDrapeActions;
 
 const DEFAULT_LAYER_VISIBILITY: Record<LayerId, boolean> = {
   terrain: true,
@@ -153,6 +170,10 @@ export const useAppStore = create<AppState>()(
           false,
           `layers/${layer}/status`,
         ),
+
+      // --- Surface drape ---
+      surfaceDrape: 'satellite',
+      setSurfaceDrape: (mode) => set({ surfaceDrape: mode }, false, 'drape/set'),
     }),
     { name: 'terrain-app-store' },
   ),
