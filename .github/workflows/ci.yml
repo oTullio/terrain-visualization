@@ -40,4 +40,4 @@ jobs:
         run: pnpm -r test
 
       - name: Build
-        run: pnpm --filter @terrain/web build
+        run: pnpm -r build
