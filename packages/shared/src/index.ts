@@ -6,3 +6,4 @@
 export * from './types/index.js';
 export * from './utils/index.js';
 export * from './geo/index.js';
+export * from './overpass/index.js';
