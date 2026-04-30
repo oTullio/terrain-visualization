@@ -4,15 +4,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import { createRequire } from 'module';
+import type GeoJSON from 'geojson';
 import { simplifyBuildings } from './simplify.js';
 
 const require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const fixture = require('./__fixtures__/overpassSample.json');
+const fixture = require('./__fixtures__/overpassSample.json') as unknown;
 
 describe('simplifyBuildings', () => {
   it('returns a GeoJSON FeatureCollection', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = simplifyBuildings(fixture);
     expect(result.type).toBe('FeatureCollection');
     expect(Array.isArray(result.features)).toBe(true);
@@ -21,7 +20,6 @@ describe('simplifyBuildings', () => {
   it('filters out tiny polygons (area <= 4 m²)', () => {
     // way 1002 in the fixture is a 0.00001° × 0.00001° square — effectively < 1 m²
     // way 1001 and 1003 are ~100 m × ~100 m squares, well above 4 m²
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = simplifyBuildings(fixture);
     // IDs 1001 and 1003 should survive; 1002 should be filtered
     const ids = result.features.map((f) => f.id);
@@ -31,7 +29,6 @@ describe('simplifyBuildings', () => {
   });
 
   it('snaps coordinates to 6 decimal places', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = simplifyBuildings(fixture);
     const feature = result.features.find((f) => f.id === 'way/1001');
     expect(feature).toBeDefined();
@@ -48,7 +45,6 @@ describe('simplifyBuildings', () => {
   });
 
   it('preserves whitelisted tags and drops non-whitelisted tags', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = simplifyBuildings(fixture);
     const feature = result.features.find((f) => f.id === 'way/1001');
     expect(feature).toBeDefined();
@@ -66,7 +62,6 @@ describe('simplifyBuildings', () => {
   });
 
   it('preserves building:part tag', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = simplifyBuildings(fixture);
     const feature = result.features.find((f) => f.id === 'way/1003');
     expect(feature).toBeDefined();

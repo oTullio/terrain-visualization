@@ -32,6 +32,8 @@ export default [
         process: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
+        Buffer: 'readonly',
+        global: 'readonly',
         // Browser — commonly referenced in TSX files
         window: 'readonly',
         document: 'readonly',

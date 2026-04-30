@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "../..",
     "composite": true,
     "moduleResolution": "node16",
     "module": "Node16",
@@ -14,6 +14,16 @@
       "@terrain/shared": ["../../packages/shared/src/index.ts"]
     }
   },
-  "include": ["api/**/*.ts", "lib/**/*.ts", "vitest.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "api/**/*.ts",
+    "lib/**/*.ts",
+    "vitest.config.ts",
+    "../../packages/shared/src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "../../packages/shared/src/**/*.test.ts",
+    "../../packages/shared/src/**/*.spec.ts"
+  ]
 }
