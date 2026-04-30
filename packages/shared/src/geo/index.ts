@@ -5,3 +5,4 @@
 
 export * from './bbox.js';
 export * from './cap.js';
+export * from './grid.js';
