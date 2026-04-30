@@ -17,6 +17,23 @@ import type { BoundingBox } from '../types/index.js';
 export type { BoundingBox };
 
 // ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/** Extract [lng, lat] from a GeoJSON position, asserting it is present. */
+function coordLng(pos: GeoJSON.Position): number {
+  const v = pos[0];
+  if (v === undefined) throw new Error('bboxFromPolygon: coordinate missing longitude');
+  return v;
+}
+
+function coordLat(pos: GeoJSON.Position): number {
+  const v = pos[1];
+  if (v === undefined) throw new Error('bboxFromPolygon: coordinate missing latitude');
+  return v;
+}
+
+// ---------------------------------------------------------------------------
 // bboxFromPolygon
 // ---------------------------------------------------------------------------
 
@@ -40,8 +57,11 @@ export function bboxFromPolygon(polygon: GeoJSON.Polygon): BoundingBox {
   // |Δlng| > 180 the polygon wraps across the antimeridian.
   let crossesAntimeridian = false;
   for (let i = 1; i < ring.length; i++) {
-    const prevLng = ring[i - 1]![0];
-    const currLng = ring[i]![0];
+    const prev = ring[i - 1];
+    const curr = ring[i];
+    if (!prev || !curr) continue;
+    const prevLng = coordLng(prev);
+    const currLng = coordLng(curr);
     if (Math.abs(currLng - prevLng) > 180) {
       crossesAntimeridian = true;
       break;
@@ -55,7 +75,9 @@ export function bboxFromPolygon(polygon: GeoJSON.Polygon): BoundingBox {
     // Simple case: collect min/max of both lat and lng.
     let west = Infinity;
     let east = -Infinity;
-    for (const [lng, lat] of ring) {
+    for (const pos of ring) {
+      const lng = coordLng(pos);
+      const lat = coordLat(pos);
       if (lng < west) west = lng;
       if (lng > east) east = lng;
       if (lat < south) south = lat;
@@ -65,44 +87,40 @@ export function bboxFromPolygon(polygon: GeoJSON.Polygon): BoundingBox {
   }
 
   // Antimeridian-crossing case.
-  // We want the smallest SIGNED range [west..east] such that west > east.
-  // Approach: shift all longitudes to a continuous range by unwrapping, then
-  // map back to [-180, 180].
-  //
-  // The algorithm collects the min and max longitude treating the ring as a
-  // continuous path. We normalise each longitude into the range [startLng,
-  // startLng + 360) to make the span monotone, then find min/max in that
-  // normalised space.
+  // Shift all longitudes to a continuous range by unwrapping, then map back.
+  const firstPos = ring[0];
+  if (!firstPos) throw new Error('bboxFromPolygon: empty ring');
+  const startLng = coordLng(firstPos);
 
   const lngs: number[] = [];
-  const startLng = ring[0]![0];
+  for (const pos of ring) {
+    const lng = coordLng(pos);
+    const lat = coordLat(pos);
 
-  for (const [lng, lat] of ring) {
     // Unwrap lng into a continuous range starting near startLng
     let unwrapped = lng;
     while (unwrapped < startLng - 180) unwrapped += 360;
     while (unwrapped > startLng + 180) unwrapped -= 360;
     lngs.push(unwrapped);
+
     if (lat < south) south = lat;
     if (lat > north) north = lat;
   }
 
-  let minUnwrapped = Math.min(...lngs);
-  let maxUnwrapped = Math.max(...lngs);
+  const minUnwrapped = Math.min(...lngs);
+  const maxUnwrapped = Math.max(...lngs);
 
   // Wrap back into [-180, 180]
   const normalise = (lng: number): number => {
-    while (lng > 180) lng -= 360;
-    while (lng < -180) lng += 360;
-    return lng;
+    let v = lng;
+    while (v > 180) v -= 360;
+    while (v < -180) v += 360;
+    return v;
   };
 
   const west = normalise(minUnwrapped);
   const east = normalise(maxUnwrapped);
 
-  // The antimeridian-crossing convention: west > east.
-  // If somehow the span doesn't cross (e.g. all normalised to same side),
-  // return the normal bbox.
   return { west, south, east, north };
 }
 
