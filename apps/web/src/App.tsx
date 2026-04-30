@@ -21,7 +21,8 @@ import { Viewer } from 'resium';
 import { Terrain } from 'cesium';
 import SelectionMap from './components/SelectionMap/SelectionMap.js';
 import BuildingsLayer from './buildings/BuildingsLayer.js';
-import BuildingsStatus from './components/BuildingsStatus.js';
+import WaterLayer from './water/WaterLayer.js';
+import LayersStatus from './components/LayersStatus.js';
 import { useAppStore } from './store/useAppStore.js';
 import type { BoundingBox } from '@terrain/shared';
 import type { Polygon } from 'geojson';
@@ -72,7 +73,7 @@ export default function App() {
         <span className="text-sm font-semibold tracking-wide text-emerald-400">
           Terrain Visualizer
         </span>
-        <span className="ml-3 text-xs text-gray-500">Phase C1 — buildings</span>
+        <span className="ml-3 text-xs text-gray-500">Phase C2 — buildings + water</span>
       </header>
 
       {/* Body: 2D selection map (left) + 3D Cesium viewer (right) */}
@@ -96,8 +97,9 @@ export default function App() {
             style={{ position: 'absolute', inset: 0 }}
           >
             <BuildingsLayer />
+            <WaterLayer />
           </Viewer>
-          <BuildingsStatus />
+          <LayersStatus />
         </div>
       </div>
     </div>

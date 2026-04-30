@@ -13,17 +13,17 @@ const cesiumSource = 'node_modules/cesium/Build/Cesium';
 const cesiumBaseUrl = 'cesium';
 
 // ---------------------------------------------------------------------------
-// Dev-only middleware that exposes /api/buildings (the Vercel handler at
-// apps/api/api/buildings.ts) inside the Vite dev server. We adapt
-// Connect's IncomingMessage / ServerResponse into the VercelRequest /
-// VercelResponse shape the handler expects, then delegate. In production
-// the real Vercel function is used; this plugin is dev-only.
+// Dev-only middleware that exposes /api/<name> handlers (Vercel serverless
+// functions at apps/api/api/<name>.ts) inside the Vite dev server.
+// We adapt Connect's IncomingMessage / ServerResponse into the VercelRequest /
+// VercelResponse shape the handlers expect, then delegate via ssrLoadModule.
+// In production the real Vercel functions are used; this plugin is dev-only.
+//
+// Adding a new layer (e.g. /api/roads in Phase C3) requires NO changes here:
+// the middleware dynamically routes any /api/<name> GET to ../api/api/<name>.ts.
 // ---------------------------------------------------------------------------
 
-const BUILDINGS_HANDLER_PATH = path.resolve(
-  __dirname,
-  '../api/api/buildings.ts',
-);
+const API_HANDLERS_DIR = path.resolve(__dirname, '../api/api');
 
 interface VercelLikeReq {
   method: string | undefined;
@@ -33,17 +33,27 @@ interface VercelLikeReq {
   body?: unknown;
 }
 
-function buildingsApiDevPlugin(): Plugin {
+function buildApiDevPlugin(): Plugin {
   return {
-    name: 'terrain-buildings-api-dev',
+    name: 'terrain-api-dev',
     apply: 'serve',
     configureServer(server: ViteDevServer) {
-      server.middlewares.use('/api/buildings', async (req, res, next) => {
+      server.middlewares.use('/api', async (req, res, next) => {
         if (req.method !== 'GET') return next();
+
+        // Extract the handler name from the URL path: /api/water?... → 'water'
+        const rawUrl = req.url ?? '';
+        const pathSegment = rawUrl.split('?')[0]!.replace(/^\//, ''); // e.g. 'water'
+        if (!pathSegment || /[^a-zA-Z0-9_-]/.test(pathSegment)) return next();
+
+        const handlerPath = path.join(API_HANDLERS_DIR, `${pathSegment}.ts`);
+
         try {
-          const mod = (await server.ssrLoadModule(BUILDINGS_HANDLER_PATH)) as {
-            default: (req: unknown, res: unknown) => Promise<void> | void;
+          const mod = (await server.ssrLoadModule(handlerPath)) as {
+            default?: (req: unknown, res: unknown) => Promise<void> | void;
           };
+
+          if (typeof mod.default !== 'function') return next();
 
           // Build a VercelRequest-shaped object from the Connect req.
           const url = req.url ?? '';
@@ -105,7 +115,7 @@ function buildingsApiDevPlugin(): Plugin {
           await mod.default(vReq, vRes);
         } catch (err) {
           // eslint-disable-next-line no-console
-          console.error('[dev /api/buildings] handler crashed:', err);
+          console.error(`[dev /api/${pathSegment}] handler crashed:`, err);
           if (!res.headersSent) {
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json');
@@ -125,7 +135,7 @@ function buildingsApiDevPlugin(): Plugin {
 export default defineConfig({
   plugins: [
     react(),
-    buildingsApiDevPlugin(),
+    buildApiDevPlugin(),
     viteStaticCopy({
       targets: [
         { src: `${cesiumSource}/Workers`, dest: cesiumBaseUrl },
