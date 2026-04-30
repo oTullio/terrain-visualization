@@ -1,5 +1,5 @@
 /**
- * App shell — Phase B1 layout.
+ * App shell — Phase C1 layout.
  *
  * Layout:
  *   ┌─────────────────────────────────────────────┐
@@ -7,16 +7,64 @@
  *   ├──────────────────────┬──────────────────────┤
  *   │ 2D SelectionMap      │  Cesium 3D Viewer    │
  *   │ (left half, w-1/2)   │  (right half, w-1/2) │
- *   │                      │                      │
+ *   │                      │  + BuildingsLayer    │
+ *   │                      │  + BuildingsStatus   │
  *   └──────────────────────┴──────────────────────┘
  *
- * Tailwind classes only — no CSS Modules.
+ * On mount, an optional `?bbox=west,south,east,north` URL query is
+ * parsed and used to pre-fill the selection (rectangle polygon derived
+ * from the bbox). This is the stress-test entrypoint — see
+ * src/buildings/STRESS_TEST.md.
  */
+import { useEffect } from 'react';
 import { Viewer } from 'resium';
 import { Terrain } from 'cesium';
 import SelectionMap from './components/SelectionMap/SelectionMap.js';
+import BuildingsLayer from './buildings/BuildingsLayer.js';
+import BuildingsStatus from './components/BuildingsStatus.js';
+import { useAppStore } from './store/useAppStore.js';
+import type { BoundingBox } from '@terrain/shared';
+import type { Polygon } from 'geojson';
+
+function parseBboxQuery(search: string): BoundingBox | null {
+  const params = new URLSearchParams(search);
+  const raw = params.get('bbox');
+  if (!raw) return null;
+  const parts = raw.split(',').map((s) => Number(s.trim()));
+  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return null;
+  const [west, south, east, north] = parts as [number, number, number, number];
+  if (south >= north) return null;
+  if (south < -90 || north > 90 || west < -180 || east > 180) return null;
+  return { west, south, east, north };
+}
+
+function bboxToPolygon(b: BoundingBox): Polygon {
+  return {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [b.west, b.south],
+        [b.east, b.south],
+        [b.east, b.north],
+        [b.west, b.north],
+        [b.west, b.south],
+      ],
+    ],
+  };
+}
 
 export default function App() {
+  const setSelection = useAppStore((s) => s.setSelection);
+
+  // One-shot URL ?bbox= ingestion. Strictly mount-time so user-driven
+  // selection changes aren't clobbered.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const bbox = parseBboxQuery(window.location.search);
+    if (!bbox) return;
+    setSelection({ bbox, polygon: bboxToPolygon(bbox) });
+  }, [setSelection]);
+
   return (
     <div className="flex flex-col w-full h-full bg-gray-950 text-white">
       {/* Header */}
@@ -24,7 +72,7 @@ export default function App() {
         <span className="text-sm font-semibold tracking-wide text-emerald-400">
           Terrain Visualizer
         </span>
-        <span className="ml-3 text-xs text-gray-500">Phase B1 — 2D selection + bbox math</span>
+        <span className="ml-3 text-xs text-gray-500">Phase C1 — buildings</span>
       </header>
 
       {/* Body: 2D selection map (left) + 3D Cesium viewer (right) */}
@@ -46,7 +94,10 @@ export default function App() {
             full
             terrain={Terrain.fromWorldTerrain()}
             style={{ position: 'absolute', inset: 0 }}
-          />
+          >
+            <BuildingsLayer />
+          </Viewer>
+          <BuildingsStatus />
         </div>
       </div>
     </div>
