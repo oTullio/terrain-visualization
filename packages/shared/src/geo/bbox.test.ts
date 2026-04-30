@@ -82,6 +82,33 @@ describe('bboxFromPolygon', () => {
     expect(bbox.north).toBeCloseTo(-10);
   });
 
+  it('detects antimeridian crossing in the reverse direction (-179 → +179)', () => {
+    // Polygon whose vertices go from -179 to +179 (crossing antimeridian eastward).
+    const reverseCrossPoly: GeoJSON.Polygon = {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [-170, -20],
+          [-179, -20],
+          [179, -20], // jumps from -179 to +179 — crossing antimeridian in reverse
+          [170, -20],
+          [170, -10],
+          [179, -10],
+          [-179, -10],
+          [-170, -10],
+          [-170, -20],
+        ],
+      ],
+    };
+    const bbox = bboxFromPolygon(reverseCrossPoly);
+    // Antimeridian-crossing bbox: west > east by convention
+    expect(bbox.west).toBeGreaterThan(bbox.east);
+    expect(bbox.west).toBeCloseTo(170);
+    expect(bbox.east).toBeCloseTo(-170);
+    expect(bbox.south).toBeCloseTo(-20);
+    expect(bbox.north).toBeCloseTo(-10);
+  });
+
   it('handles a non-rectangular polygon correctly', () => {
     // Triangle: (0,0), (10,0), (5,10)
     const tri: GeoJSON.Polygon = {
@@ -136,6 +163,15 @@ describe('splitAtAntimeridian', () => {
     // Neither sub-bbox is crossing (west < east), so splitAtAntimeridian returns each as-is.
     expect(splitAtAntimeridian(sub1)).toHaveLength(1);
     expect(splitAtAntimeridian(sub2)).toHaveLength(1);
+  });
+
+  it('returns [input] unchanged for a wide bbox with west < east (not a crossing)', () => {
+    // west=-170, east=170: west < east so this is NOT a crossing bbox.
+    // splitAtAntimeridian must return [input] unchanged.
+    const bbox: BoundingBox = { west: -170, south: -20, east: 170, north: -10 };
+    const result = splitAtAntimeridian(bbox);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual(bbox);
   });
 });
 

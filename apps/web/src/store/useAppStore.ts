@@ -25,10 +25,8 @@ export interface SelectionState {
 }
 
 export interface SelectionActions {
-  /** (Existing) Write only the bounding box. Preserved for backward compatibility. */
-  setBbox: (bbox: BoundingBox | null) => void;
   /**
-   * (New) Atomically write both the polygon and its derived bounding box.
+   * Atomically write both the polygon and its derived bounding box.
    * Use this after the user confirms a selection in the SelectionMap.
    */
   setSelection: (selection: { polygon: GeoJSON.Polygon; bbox: BoundingBox }) => void;
@@ -89,7 +87,6 @@ export const useAppStore = create<AppState>()(
       selectionPolygon: null,
       shape: 'rectangle',
       isOpen: false,
-      setBbox: (bbox) => set({ bbox }, false, 'selection/setBbox'),
       setSelection: ({ polygon, bbox }) =>
         set({ selectionPolygon: polygon, bbox }, false, 'selection/setSelection'),
       setShape: (shape) => set({ shape }, false, 'selection/setShape'),
