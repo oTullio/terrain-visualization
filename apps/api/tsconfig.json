@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "composite": true,
+    "moduleResolution": "node16",
+    "module": "Node16",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@terrain/shared": ["../../packages/shared/src/index.ts"]
+    }
+  },
+  "include": ["api/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

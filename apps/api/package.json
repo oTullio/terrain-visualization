@@ -1,0 +1,19 @@
+{
+  "name": "@terrain/api",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Vercel serverless API functions for terrain-visualization",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -b --noEmit",
+    "lint": "eslint api --ext .ts",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@terrain/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "@vercel/node": "^5.0.0"
+  }
+}

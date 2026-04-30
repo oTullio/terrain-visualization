@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.output/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.local.example
+!.env.*.example
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Vercel
+.vercel/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.local

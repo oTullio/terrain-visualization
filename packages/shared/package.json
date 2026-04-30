@@ -1,0 +1,26 @@
+{
+  "name": "@terrain/shared",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared TypeScript types and utilities for terrain-visualization",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0",
+    "typescript": "^5.8.0"
+  }
+}
