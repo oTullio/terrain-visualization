@@ -1,0 +1,96 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62",
+  "osm3s": {
+    "timestamp_osm_base": "2024-01-01T00:00:00Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org."
+  },
+  "elements": [
+    {
+      "type": "way",
+      "id": 4001,
+      "nodes": [401, 402, 403],
+      "geometry": [
+        { "lat": 38.71000, "lon": -9.15500 },
+        { "lat": 38.71050, "lon": -9.15400 },
+        { "lat": 38.71100, "lon": -9.15300 }
+      ],
+      "tags": {
+        "highway": "primary",
+        "name": "Avenida Principal",
+        "lanes": "2",
+        "oneway": "yes",
+        "maxspeed": "50",
+        "surface": "asphalt",
+        "amenity": "drop_this_tag"
+      }
+    },
+    {
+      "type": "way",
+      "id": 4002,
+      "nodes": [404, 405, 406],
+      "geometry": [
+        { "lat": 38.71500, "lon": -9.15500 },
+        { "lat": 38.71550, "lon": -9.15400 },
+        { "lat": 38.71600, "lon": -9.15300 }
+      ],
+      "tags": {
+        "highway": "residential",
+        "name": "Rua Residencial",
+        "surface": "cobblestone"
+      }
+    },
+    {
+      "type": "way",
+      "id": 4003,
+      "nodes": [407, 408],
+      "geometry": [
+        { "lat": 38.72000, "lon": -9.15500 },
+        { "lat": 38.72000, "lon": -9.15499 }
+      ],
+      "tags": {
+        "highway": "service",
+        "name": "Short Way (below 5 m threshold)"
+      }
+    },
+    {
+      "type": "way",
+      "id": 4004,
+      "nodes": [409, 410, 411],
+      "geometry": [
+        { "lat": 38.72500, "lon": -9.15500 },
+        { "lat": 38.72550, "lon": -9.15450 },
+        { "lat": 38.72600, "lon": -9.15400 }
+      ],
+      "tags": {
+        "highway": "motorway_link",
+        "ref": "A1",
+        "bridge": "yes",
+        "layer": "1"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 5001,
+      "members": [
+        {
+          "type": "way",
+          "ref": 501,
+          "role": "outer",
+          "geometry": [
+            { "lat": 38.73000, "lon": -9.15500 },
+            { "lat": 38.73000, "lon": -9.15400 },
+            { "lat": 38.73100, "lon": -9.15400 },
+            { "lat": 38.73100, "lon": -9.15500 },
+            { "lat": 38.73000, "lon": -9.15500 }
+          ]
+        }
+      ],
+      "tags": {
+        "type": "route",
+        "route": "bus",
+        "name": "Bus Route (relation — should be dropped)"
+      }
+    }
+  ]
+}
