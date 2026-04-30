@@ -1,5 +1,5 @@
 /**
- * App shell — Phase C1 layout.
+ * App shell.
  *
  * Layout:
  *   ┌─────────────────────────────────────────────┐
@@ -8,7 +8,8 @@
  *   │ 2D SelectionMap      │  Cesium 3D Viewer    │
  *   │ (left half, w-1/2)   │  (right half, w-1/2) │
  *   │                      │  + BuildingsLayer    │
- *   │                      │  + BuildingsStatus   │
+ *   │                      │  + WaterLayer        │
+ *   │                      │  + LayersStatus      │
  *   └──────────────────────┴──────────────────────┘
  *
  * On mount, an optional `?bbox=west,south,east,north` URL query is

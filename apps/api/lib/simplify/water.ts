@@ -5,8 +5,9 @@
  * - Way with waterway tag (but not waterway=riverbank) → LineString.
  *   Riverbanks, natural=water, landuse=reservoir, natural=coastline → Polygon.
  * - @turf/area for the small-polygon filter (< 100 m²).
- *   100 m² threshold is smaller than buildings (4 m²) because real ponds can
- *   be small but still visually meaningful, yet sub-100 m² water is noise.
+ *   The threshold is larger than the buildings filter (4 m²) because tiny
+ *   water polygons (drainage details, micro-puddles) tend to be noise, while
+ *   tiny buildings (sheds, kiosks) are often real and worth keeping.
  * - @turf/length for the short-LineString filter (< 5 m).
  * - Coordinates are snapped to 6 decimal places (~11 cm at equator).
  * - Tag whitelist: only water-display-relevant tags are kept.

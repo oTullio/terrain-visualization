@@ -12,7 +12,7 @@
  *     outbuildings while preserving the silhouette of the area.
  *
  * Tune via the `applyLodCap` call site, not by editing this constant
- * locally — the BuildingsStatus overlay reads from the resulting
+ * locally — the LayersStatus overlay reads from the resulting
  * `dropped` count.
  */
 export const DEFAULT_LOD_CAP = 5000;
