@@ -5,6 +5,7 @@ import {
   BuildingsApiError,
   type BuildingsApiErrorCode,
 } from './buildingsClient.js';
+import { LayerApiError } from './layerApiError.js';
 
 const TEST_BBOX: BoundingBox = {
   west: -9.155,
@@ -89,7 +90,7 @@ describe('fetchBuildings', () => {
     );
 
     await expect(fetchBuildings(TEST_BBOX)).rejects.toMatchObject({
-      name: 'BuildingsApiError',
+      name: 'LayerApiError',
       code: 'AREA_TOO_DENSE' satisfies BuildingsApiErrorCode,
       status: 413,
       userMessage: 'Selection contains too many buildings. Try a smaller area.',
@@ -161,7 +162,7 @@ describe('fetchBuildings', () => {
   it('throws INTERNAL_ERROR on a network failure', async () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await expect(fetchBuildings(TEST_BBOX)).rejects.toMatchObject({
-      name: 'BuildingsApiError',
+      name: 'LayerApiError',
       code: 'INTERNAL_ERROR',
       userMessage: "Couldn't load buildings — please try again.",
     });
@@ -193,9 +194,11 @@ describe('fetchBuildings', () => {
     await expect(fetchBuildings(TEST_BBOX)).rejects.toBe(abortError);
   });
 
-  it('BuildingsApiError is throw/instanceof safe', () => {
+  it('BuildingsApiError is throw/instanceof safe (aliases LayerApiError)', () => {
     const err = new BuildingsApiError('AREA_TOO_DENSE', 'msg', 413);
+    // BuildingsApiError is a re-export alias of LayerApiError
     expect(err).toBeInstanceOf(BuildingsApiError);
+    expect(err).toBeInstanceOf(LayerApiError);
     expect(err).toBeInstanceOf(Error);
     expect(err.code).toBe('AREA_TOO_DENSE');
     expect(err.userMessage).toBe('msg');

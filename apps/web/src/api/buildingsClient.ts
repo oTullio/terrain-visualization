@@ -3,7 +3,7 @@
  *
  * Wraps `fetch` with:
  *   - URL builder (URLSearchParams of west/south/east/north).
- *   - Typed error class (`BuildingsApiError`) for ergonomic error UX.
+ *   - Typed error class (`BuildingsApiError` → re-exported from LayerApiError) for ergonomic error UX.
  *   - JSON-only contract: any non-2xx → typed error with code + userMessage.
  *
  * AbortSignal is propagated; `AbortError` is re-thrown unchanged so callers
@@ -11,29 +11,20 @@
  */
 import type { FeatureCollection, Polygon, MultiPolygon } from 'geojson';
 import type { BoundingBox } from '@terrain/shared';
+import {
+  LayerApiError,
+  codeForStatus,
+  isAbortError,
+  isFeatureCollection,
+  type LayerApiErrorCode,
+} from './layerApiError.js';
 
-export type BuildingsApiErrorCode =
-  | 'AREA_TOO_DENSE'
-  | 'OVERPASS_UPSTREAM'
-  | 'OVERPASS_RATE_LIMITED'
-  | 'INVALID_BBOX'
-  | 'INTERNAL_ERROR';
+// Re-export for backward compatibility so existing consumers (BuildingsLayer,
+// tests) can still `import { BuildingsApiError } from './buildingsClient.js'`.
+export { LayerApiError as BuildingsApiError };
+export type { LayerApiErrorCode as BuildingsApiErrorCode };
 
-export class BuildingsApiError extends Error {
-  override readonly name = 'BuildingsApiError';
-  readonly code: BuildingsApiErrorCode;
-  readonly userMessage: string;
-  readonly status: number | undefined;
-
-  constructor(code: BuildingsApiErrorCode, userMessage: string, status?: number) {
-    super(`[${code}] ${userMessage}`);
-    this.code = code;
-    this.userMessage = userMessage;
-    this.status = status;
-  }
-}
-
-const DEFAULT_USER_MESSAGES: Record<BuildingsApiErrorCode, string> = {
+const DEFAULT_USER_MESSAGES: Record<LayerApiErrorCode, string> = {
   AREA_TOO_DENSE: 'Selection contains too many buildings. Try a smaller area.',
   OVERPASS_UPSTREAM: 'OpenStreetMap is temporarily unavailable. Please try again shortly.',
   OVERPASS_RATE_LIMITED:
@@ -41,38 +32,6 @@ const DEFAULT_USER_MESSAGES: Record<BuildingsApiErrorCode, string> = {
   INVALID_BBOX: 'Selection is invalid. Please draw a new area.',
   INTERNAL_ERROR: "Couldn't load buildings — please try again.",
 };
-
-/** Map an HTTP status to one of our typed error codes. */
-function codeForStatus(status: number): BuildingsApiErrorCode {
-  switch (status) {
-    case 413:
-      return 'AREA_TOO_DENSE';
-    case 502:
-    case 504:
-      return 'OVERPASS_UPSTREAM';
-    case 503:
-      return 'OVERPASS_RATE_LIMITED';
-    case 400:
-      return 'INVALID_BBOX';
-    default:
-      return 'INTERNAL_ERROR';
-  }
-}
-
-function isAbortError(err: unknown): boolean {
-  return (
-    err instanceof DOMException &&
-    (err.name === 'AbortError' || err.code === DOMException.ABORT_ERR)
-  );
-}
-
-function isFeatureCollection(
-  value: unknown,
-): value is FeatureCollection<Polygon | MultiPolygon> {
-  if (!value || typeof value !== 'object') return false;
-  const v = value as { type?: unknown; features?: unknown };
-  return v.type === 'FeatureCollection' && Array.isArray(v.features);
-}
 
 export interface FetchBuildingsOptions {
   signal?: AbortSignal;
@@ -100,7 +59,7 @@ export async function fetchBuildings(
     res = await fetch(url, init);
   } catch (err) {
     if (isAbortError(err)) throw err;
-    throw new BuildingsApiError(
+    throw new LayerApiError(
       'INTERNAL_ERROR',
       DEFAULT_USER_MESSAGES.INTERNAL_ERROR,
     );
@@ -117,14 +76,14 @@ export async function fetchBuildings(
     } catch {
       // non-JSON body: keep default
     }
-    throw new BuildingsApiError(code, message, res.status);
+    throw new LayerApiError(code, message, res.status);
   }
 
   let body: unknown;
   try {
     body = await res.json();
   } catch {
-    throw new BuildingsApiError(
+    throw new LayerApiError(
       'INTERNAL_ERROR',
       DEFAULT_USER_MESSAGES.INTERNAL_ERROR,
       res.status,
@@ -132,12 +91,12 @@ export async function fetchBuildings(
   }
 
   if (!isFeatureCollection(body)) {
-    throw new BuildingsApiError(
+    throw new LayerApiError(
       'INTERNAL_ERROR',
       DEFAULT_USER_MESSAGES.INTERNAL_ERROR,
       res.status,
     );
   }
 
-  return body;
+  return body as FeatureCollection<Polygon | MultiPolygon>;
 }
