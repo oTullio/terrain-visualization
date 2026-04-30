@@ -1,11 +1,11 @@
 /**
  * BuildingsStatus — top-right overlay for the Cesium pane.
  *
- * Reads the `buildingsStatus` slice and shows:
+ * Reads the `layerStatus.buildings` slice and shows:
  *   - "Loading buildings…" with a spinner when `status === 'loading'`.
  *   - "Showing N of M buildings (largest first)" when `status === 'ready'
  *     && dropped > 0`. Suppressed when nothing was dropped.
- *   - The error `userMessage` with a Dismiss button when `status === 'error'`.
+ *   - The error `message` with a Dismiss button when `status === 'error'`.
  *
  * Container is `pointer-events-none` so it never blocks Cesium input;
  * each card flips `pointer-events-auto` so its buttons remain clickable.
@@ -13,8 +13,8 @@
 import { useAppStore } from '../store/useAppStore.js';
 
 export default function BuildingsStatus() {
-  const status = useAppStore((s) => s.buildingsStatus);
-  const clearStatus = useAppStore((s) => s.clearBuildingsStatus);
+  const status = useAppStore((s) => s.layerStatus.buildings);
+  const clearStatus = useAppStore((s) => s.setLayerStatus);
 
   // Idle and ready-with-no-cap → no UI.
   if (status.status === 'idle') return null;
@@ -44,11 +44,11 @@ export default function BuildingsStatus() {
           role="alert"
           className="pointer-events-auto px-3 py-2 rounded-md bg-red-950/95 border border-red-700 shadow text-sm text-red-50"
         >
-          <p>{status.error ?? "Couldn't load buildings — please try again."}</p>
+          <p>{status.message ?? "Couldn't load buildings — please try again."}</p>
           <div className="mt-2 flex justify-end">
             <button
               type="button"
-              onClick={clearStatus}
+              onClick={() => clearStatus('buildings', { status: 'idle' })}
               className="text-xs px-2 py-1 rounded bg-red-800/70 hover:bg-red-800 border border-red-600 text-red-50"
             >
               Dismiss
