@@ -82,7 +82,7 @@ export default function App() {
         <span className="text-sm font-semibold tracking-wide text-emerald-400">
           Terrain Visualizer
         </span>
-        <span className="ml-3 text-xs text-gray-500">Phase C4 — surface drape switcher</span>
+        <span className="ml-3 text-xs text-gray-500">3D terrain visualizer</span>
         <div className="ml-auto">
           <SurfaceDrapeToggle />
         </div>

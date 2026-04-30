@@ -13,12 +13,14 @@
  * (so `useCesium()` works) but their JSX is appended to the sidebar slot
  * via `createPortal`.
  *
- * If the slot element isn't in the DOM yet (first render) we render
- * nothing; `ToolsPanel` only creates the slot when a tool is active, and
- * this component re-renders on `activeTool` change so it picks the slot
- * up on the very next tick.
+ * The slot element is created by ToolsPanel in the same React commit as
+ * the activeTool change. We use useLayoutEffect (which fires synchronously
+ * after DOM mutations but before paint) to find the slot — guaranteeing it
+ * exists before the portal would mount. useEffect would also work in
+ * Chrome+React 19 today, but useLayoutEffect locks the ordering invariant
+ * regardless of future React scheduler changes.
  */
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../store/useAppStore.js';
 import DistanceTool from './distance/DistanceTool.js';
@@ -28,15 +30,12 @@ export default function ToolPanelMount() {
   const activeTool = useAppStore((s) => s.activeTool);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (activeTool === null) {
       setSlot(null);
       return;
     }
-    // The slot element is created by ToolsPanel during the same render
-    // cycle as the activeTool change. Look it up after paint.
-    const el = document.getElementById('tools-panel-slot');
-    setSlot(el);
+    setSlot(document.getElementById('tools-panel-slot'));
   }, [activeTool]);
 
   if (!slot || activeTool === null) return null;
