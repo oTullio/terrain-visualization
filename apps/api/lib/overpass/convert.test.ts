@@ -2,7 +2,7 @@
  * Tests for overpass/convert.ts — generic Overpass → GeoJSON geometry helpers.
  */
 import { describe, it, expect } from 'vitest';
-import { snap6, geomToRing, ensureClosed, wayToPolygon, relationToMultiPolygon } from './convert.js';
+import { snap6, geomToRing, ensureClosed, wayToPolygon, wayToLineString, relationToMultiPolygon } from './convert.js';
 import type { OverpassWayElement, OverpassRelationElement } from './convert.js';
 import type GeoJSON from 'geojson';
 
@@ -154,6 +154,104 @@ describe('wayToPolygon', () => {
       expect(lngDp).toBeLessThanOrEqual(6);
       expect(latDp).toBeLessThanOrEqual(6);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// wayToLineString
+// ---------------------------------------------------------------------------
+
+describe('wayToLineString', () => {
+  const identity = (tags: Record<string, string> | undefined) => tags ?? {};
+
+  it('converts a 3-point way to a LineString Feature', () => {
+    const el: OverpassWayElement = {
+      type: 'way',
+      id: 101,
+      geometry: [
+        { lat: 38.706, lon: -9.140 },
+        { lat: 38.707, lon: -9.139 },
+        { lat: 38.708, lon: -9.138 },
+      ],
+      tags: { waterway: 'stream' },
+    };
+    const feature = wayToLineString(el, identity);
+    expect(feature).not.toBeNull();
+    expect(feature!.type).toBe('Feature');
+    expect(feature!.id).toBe('way/101');
+    expect(feature!.geometry.type).toBe('LineString');
+    expect(feature!.geometry.coordinates).toHaveLength(3);
+  });
+
+  it('accepts a 2-point way (minimum valid LineString)', () => {
+    const el: OverpassWayElement = {
+      type: 'way',
+      id: 102,
+      geometry: [
+        { lat: 38.706, lon: -9.140 },
+        { lat: 38.707, lon: -9.139 },
+      ],
+      tags: { waterway: 'river' },
+    };
+    const feature = wayToLineString(el, identity);
+    expect(feature).not.toBeNull();
+    expect(feature!.geometry.type).toBe('LineString');
+    expect(feature!.geometry.coordinates).toHaveLength(2);
+  });
+
+  it('returns null for a 1-point degenerate way', () => {
+    const el: OverpassWayElement = {
+      type: 'way',
+      id: 103,
+      geometry: [{ lat: 38.706, lon: -9.140 }],
+      tags: { waterway: 'drain' },
+    };
+    expect(wayToLineString(el, identity)).toBeNull();
+  });
+
+  it('returns null for missing geometry', () => {
+    const el: OverpassWayElement = { type: 'way', id: 104 };
+    expect(wayToLineString(el, identity)).toBeNull();
+  });
+
+  it('snaps coordinates to 6 decimal places', () => {
+    const el: OverpassWayElement = {
+      type: 'way',
+      id: 105,
+      geometry: [
+        { lat: 38.1234567, lon: -9.9876543 },
+        { lat: 38.9876543, lon: -9.1234567 },
+      ],
+    };
+    const feature = wayToLineString(el, identity);
+    expect(feature).not.toBeNull();
+    for (const [lng, lat] of feature!.geometry.coordinates) {
+      const lngDp = String(lng).split('.')[1]?.length ?? 0;
+      const latDp = String(lat).split('.')[1]?.length ?? 0;
+      expect(lngDp).toBeLessThanOrEqual(6);
+      expect(latDp).toBeLessThanOrEqual(6);
+    }
+  });
+
+  it('passes tags through the tagFilter', () => {
+    const el: OverpassWayElement = {
+      type: 'way',
+      id: 106,
+      geometry: [
+        { lat: 38.706, lon: -9.140 },
+        { lat: 38.707, lon: -9.139 },
+      ],
+      tags: { waterway: 'river', name: 'Test River', amenity: 'drop_this' },
+    };
+    const feature = wayToLineString(el, (tags) => {
+      const { waterway, name } = tags ?? {};
+      const out: Record<string, string> = {};
+      if (waterway) out['waterway'] = waterway;
+      if (name) out['name'] = name;
+      return out;
+    });
+    expect(feature!.properties).toEqual({ waterway: 'river', name: 'Test River' });
+    expect(feature!.properties).not.toHaveProperty('amenity');
   });
 });
 

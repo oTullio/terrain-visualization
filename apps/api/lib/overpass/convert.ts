@@ -107,6 +107,37 @@ export function wayToPolygon(
 }
 
 // ---------------------------------------------------------------------------
+// LineString converter (for waterways)
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert an Overpass way element to a GeoJSON LineString Feature.
+ *
+ * Used for waterways (rivers, streams, canals, ditches) that are modelled
+ * as open lines rather than closed polygons.
+ *
+ * @param el - The Overpass way element with embedded geometry.
+ * @param tagFilter - Function to filter/transform the element's tags into
+ *   Feature properties. Pass `(tags) => tags` to keep all tags.
+ * @returns A GeoJSON Feature, or `null` if geometry is missing/degenerate (< 2 pts).
+ */
+export function wayToLineString(
+  el: OverpassWayElement,
+  tagFilter: (tags: Record<string, string> | undefined) => Record<string, string>,
+): GeoJSON.Feature<GeoJSON.LineString> | null {
+  if (!el.geometry || el.geometry.length < 2) return null;
+
+  const coordinates = el.geometry.map((pt) => [snap6(pt.lon), snap6(pt.lat)] as GeoJSON.Position);
+
+  return {
+    type: 'Feature',
+    id: `way/${el.id}`,
+    geometry: { type: 'LineString', coordinates },
+    properties: tagFilter(el.tags),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Relation converter
 // ---------------------------------------------------------------------------
 
