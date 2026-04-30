@@ -7,3 +7,11 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+export {};
+
+declare global {
+  interface Window {
+    CESIUM_BASE_URL: string;
+  }
+}
