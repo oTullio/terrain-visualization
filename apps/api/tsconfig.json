@@ -14,6 +14,6 @@
       "@terrain/shared": ["../../packages/shared/src/index.ts"]
     }
   },
-  "include": ["api/**/*.ts"],
+  "include": ["api/**/*.ts", "lib/**/*.ts", "vitest.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
