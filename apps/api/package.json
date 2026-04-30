@@ -14,6 +14,7 @@
     "@terrain/shared": "workspace:*",
     "@turf/area": "^7.3.5",
     "@turf/helpers": "^7.3.5",
+    "@turf/length": "^7.3.5",
     "@upstash/redis": "^1.34.9"
   },
   "devDependencies": {
