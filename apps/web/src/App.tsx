@@ -1,19 +1,21 @@
-import { Viewer } from 'resium';
-import { Terrain } from 'cesium';
-
 /**
- * App shell — Phase A placeholder.
+ * App shell — Phase B1 layout.
  *
  * Layout:
- *   ┌─────────────────────────────────────┐
- *   │  header (fixed, h-12)               │
- *   ├───────────┬─────────────────────────┤
- *   │ sidebar   │  Cesium Viewer          │
- *   │ (w-64)    │  (fills remaining area) │
- *   └───────────┴─────────────────────────┘
+ *   ┌─────────────────────────────────────────────┐
+ *   │  header (fixed, h-12)                       │
+ *   ├──────────────────────┬──────────────────────┤
+ *   │ 2D SelectionMap      │  Cesium 3D Viewer    │
+ *   │ (left half, w-1/2)   │  (right half, w-1/2) │
+ *   │                      │                      │
+ *   └──────────────────────┴──────────────────────┘
  *
- * Tailwind classes are used exclusively — no CSS Modules.
+ * Tailwind classes only — no CSS Modules.
  */
+import { Viewer } from 'resium';
+import { Terrain } from 'cesium';
+import SelectionMap from './components/SelectionMap/SelectionMap.js';
+
 export default function App() {
   return (
     <div className="flex flex-col w-full h-full bg-gray-950 text-white">
@@ -22,25 +24,23 @@ export default function App() {
         <span className="text-sm font-semibold tracking-wide text-emerald-400">
           Terrain Visualizer
         </span>
-        <span className="ml-3 text-xs text-gray-500">Phase A — scaffold</span>
+        <span className="ml-3 text-xs text-gray-500">Phase B1 — 2D selection + bbox math</span>
       </header>
 
-      {/* Body: sidebar + viewer */}
+      {/* Body: 2D selection map (left) + 3D Cesium viewer (right) */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar shell */}
-        <aside className="w-64 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col p-3 gap-2 z-10">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Layers</p>
-          <div className="h-px bg-gray-800" />
-          <p className="text-xs text-gray-600 italic">No layers yet — coming in Phase C</p>
+        {/* Left panel — 2D selection map */}
+        <div className="w-1/2 shrink-0 flex flex-col border-r border-gray-800 overflow-hidden">
+          {/* Panel header */}
+          <div className="px-3 py-2 bg-gray-900 border-b border-gray-800 shrink-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+              Select Area
+            </p>
+          </div>
+          <SelectionMap />
+        </div>
 
-          <p className="mt-4 text-xs font-semibold text-gray-400 uppercase tracking-widest">
-            Tools
-          </p>
-          <div className="h-px bg-gray-800" />
-          <p className="text-xs text-gray-600 italic">No tools yet — coming in Phase D</p>
-        </aside>
-
-        {/* Cesium Viewer — fills all remaining space */}
+        {/* Right panel — Cesium 3D viewer */}
         <div className="relative flex-1">
           <Viewer
             full
