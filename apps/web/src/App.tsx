@@ -27,8 +27,11 @@ import BuildingsLayer from './buildings/BuildingsLayer.js';
 import WaterLayer from './water/WaterLayer.js';
 import RoadsLayer from './roads/RoadsLayer.js';
 import LayersStatus from './components/LayersStatus.js';
+import ToolsPanel from './components/ToolsPanel.js';
 import SurfaceDrapeLayer from './terrain/SurfaceDrapeLayer.js';
 import SurfaceDrapeToggle from './components/SurfaceDrapeToggle.js';
+import MeasurementHandler from './tools/MeasurementHandler.js';
+import ToolPanelMount from './tools/ToolPanelMount.js';
 import { useAppStore } from './store/useAppStore.js';
 import type { BoundingBox } from '@terrain/shared';
 import type { Polygon } from 'geojson';
@@ -109,8 +112,11 @@ export default function App() {
             <BuildingsLayer />
             <WaterLayer />
             <RoadsLayer />
+            <MeasurementHandler />
+            <ToolPanelMount />
           </Viewer>
           <LayersStatus />
+          <ToolsPanel />
         </div>
       </div>
     </div>
