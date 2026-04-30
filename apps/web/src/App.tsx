@@ -2,16 +2,17 @@
  * App shell.
  *
  * Layout:
- *   ┌─────────────────────────────────────────────┐
- *   │  header (fixed, h-12)                       │
- *   ├──────────────────────┬──────────────────────┤
- *   │ 2D SelectionMap      │  Cesium 3D Viewer    │
- *   │ (left half, w-1/2)   │  (right half, w-1/2) │
- *   │                      │  + BuildingsLayer    │
- *   │                      │  + WaterLayer        │
- *   │                      │  + RoadsLayer        │
- *   │                      │  + LayersStatus      │
- *   └──────────────────────┴──────────────────────┘
+ *   ┌─────────────────────────────────────────────────────────────┐
+ *   │  header (fixed, h-12)            [SurfaceDrapeToggle →]     │
+ *   ├──────────────────────────┬────────────────────────────────  │
+ *   │ 2D SelectionMap          │  Cesium 3D Viewer                │
+ *   │ (left half, w-1/2)       │  (right half, w-1/2)             │
+ *   │                          │  + SurfaceDrapeLayer (imagery)   │
+ *   │                          │  + BuildingsLayer                │
+ *   │                          │  + WaterLayer                    │
+ *   │                          │  + RoadsLayer                    │
+ *   │                          │  + LayersStatus                  │
+ *   └──────────────────────────┴──────────────────────────────────┘
  *
  * On mount, an optional `?bbox=west,south,east,north` URL query is
  * parsed and used to pre-fill the selection (rectangle polygon derived
@@ -26,6 +27,8 @@ import BuildingsLayer from './buildings/BuildingsLayer.js';
 import WaterLayer from './water/WaterLayer.js';
 import RoadsLayer from './roads/RoadsLayer.js';
 import LayersStatus from './components/LayersStatus.js';
+import SurfaceDrapeLayer from './terrain/SurfaceDrapeLayer.js';
+import SurfaceDrapeToggle from './components/SurfaceDrapeToggle.js';
 import { useAppStore } from './store/useAppStore.js';
 import type { BoundingBox } from '@terrain/shared';
 import type { Polygon } from 'geojson';
@@ -76,7 +79,10 @@ export default function App() {
         <span className="text-sm font-semibold tracking-wide text-emerald-400">
           Terrain Visualizer
         </span>
-        <span className="ml-3 text-xs text-gray-500">Phase C3 — buildings + water + roads</span>
+        <span className="ml-3 text-xs text-gray-500">Phase C4 — surface drape switcher</span>
+        <div className="ml-auto">
+          <SurfaceDrapeToggle />
+        </div>
       </header>
 
       {/* Body: 2D selection map (left) + 3D Cesium viewer (right) */}
@@ -99,6 +105,7 @@ export default function App() {
             terrain={Terrain.fromWorldTerrain()}
             style={{ position: 'absolute', inset: 0 }}
           >
+            <SurfaceDrapeLayer />
             <BuildingsLayer />
             <WaterLayer />
             <RoadsLayer />
