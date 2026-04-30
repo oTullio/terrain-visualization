@@ -75,13 +75,53 @@ export interface LayerActions {
 
 export type ToolId = 'distance' | 'elevation-profile' | 'viewshed' | 'slope-aspect' | 'area-volume';
 
+/** A point picked from the 3D scene. */
+export interface PickedPoint {
+  lng: number;
+  lat: number;
+  height: number;
+}
+
+/** A sample along a line between two picked points. */
+export interface ElevationSample {
+  lng: number;
+  lat: number;
+  height: number;
+  /** Cumulative geodesic distance from the start point, in metres. */
+  distance: number;
+}
+
 export interface ToolState {
   /** The currently active tool, or null if no tool is active. */
   activeTool: ToolId | null;
+  distance: { points: PickedPoint[] };
+  elevationProfile: {
+    points: PickedPoint[];
+    samples: ElevationSample[] | null;
+  };
 }
 
 export interface ToolActions {
+  /** Activate a tool (or `null` to deactivate). Clears the previous tool's points. */
   setActiveTool: (tool: ToolId | null) => void;
+  /**
+   * Append a point to the distance tool. The tool is bounded to 2 points;
+   * a 3rd click resets to `[newPoint]` (start over).
+   */
+  addDistancePoint: (p: PickedPoint) => void;
+  resetDistance: () => void;
+  /**
+   * Append a point to the elevation-profile tool. Bounded to 2 points;
+   * a 3rd click resets to `[newPoint]`. Clears any cached samples.
+   */
+  addElevationProfilePoint: (p: PickedPoint) => void;
+  setElevationSamples: (samples: ElevationSample[]) => void;
+  resetElevationProfile: () => void;
+  /**
+   * Clears whichever tool is currently active. If no tool is active,
+   * clears all tool state. Used by Esc cancel.
+   */
+  clearActiveToolPoints: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,7 +198,78 @@ export const useAppStore = create<AppState>()(
 
       // --- Tools ---
       activeTool: null,
-      setActiveTool: (tool) => set({ activeTool: tool }, false, 'tools/setActive'),
+      distance: { points: [] },
+      elevationProfile: { points: [], samples: null },
+      setActiveTool: (tool) =>
+        set(
+          (s) => {
+            // Clear the *previous* tool's picked points so switching tools
+            // never leaves stale geometry on screen.
+            const next: Partial<AppState> = { activeTool: tool };
+            if (s.activeTool === 'distance') {
+              next.distance = { points: [] };
+            } else if (s.activeTool === 'elevation-profile') {
+              next.elevationProfile = { points: [], samples: null };
+            }
+            return next;
+          },
+          false,
+          'tools/setActive',
+        ),
+      addDistancePoint: (p) =>
+        set(
+          (s) => {
+            // Bounded to 2 points: the 3rd click starts a new measurement.
+            const points = s.distance.points.length >= 2 ? [p] : [...s.distance.points, p];
+            return { distance: { points } };
+          },
+          false,
+          'tools/distance/addPoint',
+        ),
+      resetDistance: () =>
+        set({ distance: { points: [] } }, false, 'tools/distance/reset'),
+      addElevationProfilePoint: (p) =>
+        set(
+          (s) => {
+            const points =
+              s.elevationProfile.points.length >= 2 ? [p] : [...s.elevationProfile.points, p];
+            // New point invalidates any cached samples.
+            return { elevationProfile: { points, samples: null } };
+          },
+          false,
+          'tools/elevationProfile/addPoint',
+        ),
+      setElevationSamples: (samples) =>
+        set(
+          (s) => ({ elevationProfile: { ...s.elevationProfile, samples } }),
+          false,
+          'tools/elevationProfile/setSamples',
+        ),
+      resetElevationProfile: () =>
+        set(
+          { elevationProfile: { points: [], samples: null } },
+          false,
+          'tools/elevationProfile/reset',
+        ),
+      clearActiveToolPoints: () =>
+        set(
+          (s) => {
+            if (s.activeTool === 'distance') {
+              return { distance: { points: [] } };
+            }
+            if (s.activeTool === 'elevation-profile') {
+              return { elevationProfile: { points: [], samples: null } };
+            }
+            // No active tool: clear everything (Esc-while-idle is a no-op for the user
+            // but ensures a clean slate if internal state somehow drifted).
+            return {
+              distance: { points: [] },
+              elevationProfile: { points: [], samples: null },
+            };
+          },
+          false,
+          'tools/clearActivePoints',
+        ),
 
       // --- Layer status (keyed by LayerId) ---
       layerStatus: Object.fromEntries(

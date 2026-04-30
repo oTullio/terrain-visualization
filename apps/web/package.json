@@ -23,6 +23,7 @@
     "maplibre-gl": "^5.24.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "recharts": "^3.8.1",
     "resium": "^1.21.0",
     "zustand": "^5.0.12"
   },
