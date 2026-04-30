@@ -28,29 +28,39 @@ import { useAppStore, type LayerId } from '../store/useAppStore.js';
 // Public types
 // ---------------------------------------------------------------------------
 
-export type LayerStatus =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'ready'; total: number; kept: number; dropped: number }
-  | { kind: 'error'; message: string };
+// Re-export the canonical LayerStatus from the store so consumers don't
+// import a divergent shape.
+export type { LayerStatus } from '../store/useAppStore.js';
 
 export interface UseGeoJsonLayerOptions<F extends GeoJSON.Feature> {
   layerId: LayerId;
   bbox: BoundingBox | null;
   selectionPolygon: GeoJSON.Polygon | null;
-  /** Called inside the effect with an AbortSignal. */
+  /**
+   * Called inside the effect with an AbortSignal.
+   *
+   * IMPORTANT: pass a module-level (or `useCallback`-stable) function. The
+   * effect's deps array includes `fetcher` (and the other callbacks), so an
+   * inline closure recreated each render will refire the effect — and refetch.
+   */
   fetcher: (
     bbox: BoundingBox,
     signal: AbortSignal,
   ) => Promise<GeoJSON.FeatureCollection<F['geometry']>>;
-  /** Optional clip step. Default: identity (pass-through). */
+  /** Optional clip step. Default: identity (pass-through). Same stability rule as `fetcher`. */
   clip?: (
     fc: GeoJSON.FeatureCollection<F['geometry']>,
     polygon: GeoJSON.Polygon | null,
   ) => GeoJSON.FeatureCollection<F['geometry']>;
-  /** LOD cap stage. Returns { kept, dropped }. */
+  /** LOD cap stage. Returns { kept, dropped }. Same stability rule as `fetcher`. */
   applyCap: (features: F[]) => { kept: F[]; dropped: number };
-  /** Renders ONE feature → ONE Entity (or returns null to skip). */
+  /**
+   * Turns one feature into one Cesium Entity (or null to skip).
+   *
+   * **Implementor responsibility:** call `viewer.entities.add(entity)` and
+   * return that same instance. The hook only tracks the returned entity for
+   * cleanup (via `viewer.entities.remove`); it does not add it to the viewer.
+   */
   renderFeature: (feature: F, viewer: Cesium.Viewer) => Cesium.Entity | null;
   /** Whether to fly camera to the bbox once per new selection (default true). */
   flyToOnSelection?: boolean;
