@@ -43,7 +43,7 @@ vi.mock('cesium', async () => {
   return {
     ...actual,
     ScreenSpaceEventHandler: FakeHandler,
-    ScreenSpaceEventType: { LEFT_CLICK: 2 },
+    ScreenSpaceEventType: { LEFT_CLICK: 2, LEFT_DOUBLE_CLICK: 3 },
   };
 });
 
@@ -62,9 +62,11 @@ vi.mock('./pickPosition.js', () => ({
 
 // Per-test mutable store stub.
 const storeStub = {
-  activeTool: null as 'distance' | 'elevation-profile' | null,
+  activeTool: null as 'distance' | 'elevation-profile' | 'area-volume' | null,
   addDistancePoint: vi.fn(),
   addElevationProfilePoint: vi.fn(),
+  addAreaVolumePoint: vi.fn(),
+  finalizeAreaVolumePolygon: vi.fn(),
   clearActiveToolPoints: vi.fn(),
 };
 vi.mock('../store/useAppStore.js', () => ({
@@ -78,13 +80,23 @@ beforeEach(() => {
   storeStub.activeTool = null;
   storeStub.addDistancePoint.mockReset();
   storeStub.addElevationProfilePoint.mockReset();
+  storeStub.addAreaVolumePoint.mockReset();
+  storeStub.finalizeAreaVolumePolygon.mockReset();
   storeStub.clearActiveToolPoints.mockReset();
 });
 
-function fireLeftClick() {
-  const entry = globalThis.__mhRegistered[0];
-  if (!entry) throw new Error('no input action registered');
+function fireByType(type: number) {
+  const entry = globalThis.__mhRegistered.find((e) => e.type === type);
+  if (!entry) throw new Error(`no input action registered for type ${type}`);
   entry.cb({ position: { x: 100, y: 100 } });
+}
+
+function fireLeftClick() {
+  fireByType(2);
+}
+
+function fireLeftDoubleClick() {
+  fireByType(3);
 }
 
 describe('MeasurementHandler', () => {
@@ -124,5 +136,28 @@ describe('MeasurementHandler', () => {
     render(<MeasurementHandler />);
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(storeStub.clearActiveToolPoints).not.toHaveBeenCalled();
+  });
+
+  it('LEFT_CLICK with activeTool=area-volume dispatches addAreaVolumePoint', () => {
+    storeStub.activeTool = 'area-volume';
+    render(<MeasurementHandler />);
+    fireLeftClick();
+    expect(storeStub.addAreaVolumePoint).toHaveBeenCalledWith(pickResult);
+    expect(storeStub.addDistancePoint).not.toHaveBeenCalled();
+    expect(storeStub.addElevationProfilePoint).not.toHaveBeenCalled();
+  });
+
+  it('LEFT_DOUBLE_CLICK with activeTool=area-volume finalizes the polygon', () => {
+    storeStub.activeTool = 'area-volume';
+    render(<MeasurementHandler />);
+    fireLeftDoubleClick();
+    expect(storeStub.finalizeAreaVolumePolygon).toHaveBeenCalledTimes(1);
+  });
+
+  it('LEFT_DOUBLE_CLICK with non-area-volume tool is a no-op', () => {
+    storeStub.activeTool = 'distance';
+    render(<MeasurementHandler />);
+    fireLeftDoubleClick();
+    expect(storeStub.finalizeAreaVolumePolygon).not.toHaveBeenCalled();
   });
 });
