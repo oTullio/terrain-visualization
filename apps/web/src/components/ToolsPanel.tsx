@@ -38,10 +38,12 @@ interface ToolDef {
   label: string;
 }
 
-// D1 ships these two only. D2/D3/D4 will append entries here.
+// D1 shipped Distance + Elevation profile; D2 adds Slope / aspect. D3 / D4
+// will append entries here.
 const TOOLS: ToolDef[] = [
   { id: 'distance', label: 'Distance' },
   { id: 'elevation-profile', label: 'Elevation profile' },
+  { id: 'slope-aspect', label: 'Slope / aspect' },
 ];
 
 export default function ToolsPanel() {

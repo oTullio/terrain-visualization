@@ -25,6 +25,8 @@ import { createPortal } from 'react-dom';
 import { useAppStore } from '../store/useAppStore.js';
 import DistanceTool from './distance/DistanceTool.js';
 import ElevationProfileTool from './elevationProfile/ElevationProfileTool.js';
+import SlopeAspectTool from './slopeAspect/SlopeAspectTool.js';
+import SlopeAspectLayer from './slopeAspect/SlopeAspectLayer.js';
 
 export default function ToolPanelMount() {
   const activeTool = useAppStore((s) => s.activeTool);
@@ -38,13 +40,38 @@ export default function ToolPanelMount() {
     setSlot(document.getElementById('tools-panel-slot'));
   }, [activeTool]);
 
-  if (!slot || activeTool === null) return null;
+  // The slope-aspect overlay imagery layer is mounted UNCONDITIONALLY
+  // (always rendered alongside whichever panel is active) so its own
+  // effect can react to activeTool / bbox / mode changes — including
+  // adding the overlay when the tool first activates and removing it on
+  // deactivation. Its own logic guards against doing work when inactive.
+  const slopeAspectLayer = <SlopeAspectLayer />;
+
+  if (!slot || activeTool === null) return slopeAspectLayer;
 
   if (activeTool === 'distance') {
-    return createPortal(<DistanceTool />, slot);
+    return (
+      <>
+        {slopeAspectLayer}
+        {createPortal(<DistanceTool />, slot)}
+      </>
+    );
   }
   if (activeTool === 'elevation-profile') {
-    return createPortal(<ElevationProfileTool />, slot);
+    return (
+      <>
+        {slopeAspectLayer}
+        {createPortal(<ElevationProfileTool />, slot)}
+      </>
+    );
   }
-  return null;
+  if (activeTool === 'slope-aspect') {
+    return (
+      <>
+        {slopeAspectLayer}
+        {createPortal(<SlopeAspectTool />, slot)}
+      </>
+    );
+  }
+  return slopeAspectLayer;
 }
