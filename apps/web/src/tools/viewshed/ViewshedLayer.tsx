@@ -68,6 +68,7 @@ export default function ViewshedLayer() {
   const maxRangeM = useAppStore((s) => s.viewshed.maxRangeM);
   const setStatus = useAppStore((s) => s.setViewshedStatus);
   const setResult = useAppStore((s) => s.setViewshedResult);
+  const reducedScene = useAppStore((s) => s.reducedScene);
 
   const overlayRef = useRef<Cesium.ImageryLayer | null>(null);
   const observerEntityRef = useRef<Cesium.Entity | null>(null);
@@ -88,7 +89,9 @@ export default function ViewshedLayer() {
     };
     removeOverlay();
 
-    if (activeTool !== 'viewshed' || !observer) {
+    // When reduced-scene mode is ON skip the viewshed computation — it
+    // samples a dense terrain grid and is too expensive on mobile.
+    if (activeTool !== 'viewshed' || !observer || reducedScene) {
       return;
     }
 
@@ -162,7 +165,7 @@ export default function ViewshedLayer() {
       ac.abort();
       removeOverlay();
     };
-  }, [viewer, activeTool, observer, eyeHeightM, maxRangeM, setStatus, setResult]);
+  }, [viewer, activeTool, observer, eyeHeightM, maxRangeM, setStatus, setResult, reducedScene]);
 
   // -------- Effect B: observer marker --------------------------------------
   useEffect(() => {

@@ -268,6 +268,25 @@ export interface LayerStatusActions {
 const INITIAL_LAYER_STATUS: LayerStatus = { status: 'idle' };
 
 // ---------------------------------------------------------------------------
+// Reduced-scene slice (E5 mobile escape hatch — plan section 5 risk #7)
+// ---------------------------------------------------------------------------
+
+/**
+ * When `reducedScene` is true the heavier Cesium layers (Buildings, Roads,
+ * SlopeAspect, Viewshed) skip rendering. Water and SurfaceDrape remain
+ * active — they are comparatively cheap. Defaults to ON when the viewport
+ * is mobile-sized at first paint so the initial experience on a phone is
+ * usable without waiting for heavy tile fetches.
+ */
+export interface ReducedSceneState {
+  reducedScene: boolean;
+}
+
+export interface ReducedSceneActions {
+  setReducedScene: (on: boolean) => void;
+}
+
+// ---------------------------------------------------------------------------
 // Combined store
 // ---------------------------------------------------------------------------
 
@@ -280,7 +299,9 @@ export type AppState = SelectionState &
   LayerStatusState &
   LayerStatusActions &
   SurfaceDrapeState &
-  SurfaceDrapeActions;
+  SurfaceDrapeActions &
+  ReducedSceneState &
+  ReducedSceneActions;
 
 const DEFAULT_LAYER_VISIBILITY: Record<LayerId, boolean> = {
   terrain: true,
@@ -655,6 +676,15 @@ export const useAppStore = create<AppState>()(
       // --- Surface drape ---
       surfaceDrape: 'satellite',
       setSurfaceDrape: (mode) => set({ surfaceDrape: mode }, false, 'drape/set'),
+
+      // --- Reduced scene (mobile escape hatch) ---
+      // Default ON on mobile viewports so the 3D scene is usable without
+      // waiting for heavy building / road tile fetches over a mobile connection.
+      reducedScene:
+        typeof window !== 'undefined'
+          ? window.matchMedia('(max-width: 768px)').matches
+          : false,
+      setReducedScene: (on) => set({ reducedScene: on }, false, 'reducedScene/set'),
     }),
     { name: 'terrain-app-store' },
   ),

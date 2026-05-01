@@ -85,10 +85,13 @@ function buildingsErrorToMessage(err: unknown): string {
 export default function BuildingsLayer() {
   const bbox = useAppStore((s) => s.bbox);
   const selectionPolygon = useAppStore((s) => s.selectionPolygon);
+  const reducedScene = useAppStore((s) => s.reducedScene);
 
+  // When reduced-scene mode is ON (default on mobile) skip the heavy building
+  // fetch + render entirely so the 3D scene stays performant on low-end devices.
   useGeoJsonLayer<BuildingFeature>({
     layerId: 'buildings',
-    bbox,
+    bbox: reducedScene ? null : bbox,
     selectionPolygon,
     fetcher: buildingsFetcher,
     clip: clipFeaturesToPolygon,

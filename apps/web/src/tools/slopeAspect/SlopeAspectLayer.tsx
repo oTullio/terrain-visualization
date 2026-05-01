@@ -49,6 +49,7 @@ export default function SlopeAspectLayer() {
   const bbox = useAppStore((s) => s.bbox);
   const mode = useAppStore((s) => s.slopeAspect.mode);
   const setSlopeAspectStatus = useAppStore((s) => s.setSlopeAspectStatus);
+  const reducedScene = useAppStore((s) => s.reducedScene);
 
   // Track the imagery layer we've added so we can remove exactly that one.
   const overlayRef = useRef<Cesium.ImageryLayer | null>(null);
@@ -69,7 +70,9 @@ export default function SlopeAspectLayer() {
     };
     removeOverlay();
 
-    if (activeTool !== 'slope-aspect' || !bbox) {
+    // When reduced-scene mode is ON skip this overlay (it requires sampling the
+    // full terrain grid — expensive on mobile).
+    if (activeTool !== 'slope-aspect' || !bbox || reducedScene) {
       setSlopeAspectStatus({ status: 'idle' });
       return;
     }
@@ -164,7 +167,7 @@ export default function SlopeAspectLayer() {
       ac.abort();
       removeOverlay();
     };
-  }, [viewer, activeTool, bbox, mode, setSlopeAspectStatus]);
+  }, [viewer, activeTool, bbox, mode, setSlopeAspectStatus, reducedScene]);
 
   return null;
 }

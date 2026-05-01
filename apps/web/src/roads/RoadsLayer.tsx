@@ -90,10 +90,13 @@ function roadsErrorToMessage(err: unknown): string {
 export default function RoadsLayer() {
   const bbox = useAppStore((s) => s.bbox);
   const selectionPolygon = useAppStore((s) => s.selectionPolygon);
+  const reducedScene = useAppStore((s) => s.reducedScene);
 
+  // Skip road rendering when reduced-scene mode is ON (default on mobile)
+  // to reduce tile fetches and keep the 3D scene smooth on low-end devices.
   useGeoJsonLayer<RoadFeature>({
     layerId: 'roads',
-    bbox,
+    bbox: reducedScene ? null : bbox,
     selectionPolygon,
     fetcher: roadsFetcher,
     applyCap: roadsApplyCap,
