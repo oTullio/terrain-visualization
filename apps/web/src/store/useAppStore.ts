@@ -114,6 +114,29 @@ export type AreaVolumeStatus =
   | 'ready'
   | 'error';
 
+/** Viewshed tool state (D4). Sampled-ray LOS technique (NOT shadow-map). */
+export type ViewshedStatus =
+  | 'idle'
+  | 'picking'
+  | 'computing'
+  | 'ready'
+  | 'error';
+
+/**
+ * Dimensions of a computed viewshed grid.
+ *
+ * `cells` is a Uint8Array of length `cols * rows` in row-major order
+ * (row 0 = south), with values:
+ *   0 → out-of-range (transparent)
+ *   1 → not visible (red)
+ *   2 → visible    (green)
+ */
+export interface ViewshedGridDims {
+  cols: number;
+  rows: number;
+  bbox: BoundingBox;
+}
+
 /**
  * Heights sampled inside the polygon. The heights array is dense over the
  * bbox grid (cols * rows) — entries inside the polygon are valid metres,
@@ -159,6 +182,22 @@ export interface ToolState {
      */
     errorMessage: string | undefined;
   };
+  viewshed: {
+    /** Observer position (lng, lat, terrain height at observer). */
+    observer: PickedPoint | null;
+    /** Eye height above terrain at the observer, in metres. */
+    observerEyeHeightM: number;
+    /** Maximum visibility range in metres. */
+    maxRangeM: number;
+    status: ViewshedStatus;
+    errorMessage: string | undefined;
+    /**
+     * Visibility mask: row-major Uint8Array of length cols*rows.
+     * 0 = out-of-range, 1 = not visible, 2 = visible.
+     */
+    cells: Uint8Array | null;
+    gridDims: ViewshedGridDims | null;
+  };
 }
 
 export interface ToolActions {
@@ -193,6 +232,14 @@ export interface ToolActions {
   setAreaVolumeSamples: (samples: AreaVolumeSamples | null) => void;
   setAreaVolumeStatus: (status: AreaVolumeStatus, errorMessage?: string) => void;
   resetAreaVolume: () => void;
+  /** Set the observer point (single-pick). Clears any previous result. */
+  setViewshedObserver: (p: PickedPoint) => void;
+  setViewshedEyeHeight: (m: number) => void;
+  setViewshedMaxRange: (m: number) => void;
+  setViewshedStatus: (status: ViewshedStatus, errorMessage?: string) => void;
+  setViewshedResult: (result: { cells: Uint8Array; gridDims: ViewshedGridDims }) => void;
+  /** Clear observer + computed result; preserves eye height + max range knobs. */
+  resetViewshed: () => void;
   /**
    * Clears whichever tool is currently active. If no tool is active,
    * clears all tool state. Used by Esc cancel.
@@ -286,6 +333,15 @@ export const useAppStore = create<AppState>()(
         status: 'idle',
         errorMessage: undefined,
       },
+      viewshed: {
+        observer: null,
+        observerEyeHeightM: 2,
+        maxRangeM: 3000,
+        status: 'idle',
+        errorMessage: undefined,
+        cells: null,
+        gridDims: null,
+      },
       setActiveTool: (tool) =>
         set(
           (s) => {
@@ -308,6 +364,17 @@ export const useAppStore = create<AppState>()(
                 polygon: [],
                 finalized: false,
                 samples: null,
+                status: 'idle',
+                errorMessage: undefined,
+              };
+            } else if (s.activeTool === 'viewshed') {
+              // Reset observer + result but keep the user's eye-height and
+              // max-range knobs (they're UI preferences, not data).
+              next.viewshed = {
+                ...s.viewshed,
+                observer: null,
+                cells: null,
+                gridDims: null,
                 status: 'idle',
                 errorMessage: undefined,
               };
@@ -451,6 +518,69 @@ export const useAppStore = create<AppState>()(
           false,
           'tools/areaVolume/reset',
         ),
+      setViewshedObserver: (p) =>
+        set(
+          (s) => ({
+            viewshed: {
+              ...s.viewshed,
+              observer: p,
+              // New observer invalidates any previous result.
+              cells: null,
+              gridDims: null,
+              status: 'computing',
+              errorMessage: undefined,
+            },
+          }),
+          false,
+          'tools/viewshed/setObserver',
+        ),
+      setViewshedEyeHeight: (m) =>
+        set(
+          (s) => ({ viewshed: { ...s.viewshed, observerEyeHeightM: m } }),
+          false,
+          'tools/viewshed/setEyeHeight',
+        ),
+      setViewshedMaxRange: (m) =>
+        set(
+          (s) => ({ viewshed: { ...s.viewshed, maxRangeM: m } }),
+          false,
+          'tools/viewshed/setMaxRange',
+        ),
+      setViewshedStatus: (status, errorMessage) =>
+        set(
+          (s) => ({ viewshed: { ...s.viewshed, status, errorMessage } }),
+          false,
+          'tools/viewshed/setStatus',
+        ),
+      setViewshedResult: ({ cells, gridDims }) =>
+        set(
+          (s) => ({
+            viewshed: {
+              ...s.viewshed,
+              cells,
+              gridDims,
+              status: 'ready',
+              errorMessage: undefined,
+            },
+          }),
+          false,
+          'tools/viewshed/setResult',
+        ),
+      resetViewshed: () =>
+        set(
+          (s) => ({
+            viewshed: {
+              ...s.viewshed,
+              observer: null,
+              cells: null,
+              gridDims: null,
+              status: 'idle',
+              errorMessage: undefined,
+            },
+          }),
+          false,
+          'tools/viewshed/reset',
+        ),
       clearActiveToolPoints: () =>
         set(
           (s) => {
@@ -472,6 +602,18 @@ export const useAppStore = create<AppState>()(
                 },
               };
             }
+            if (s.activeTool === 'viewshed') {
+              return {
+                viewshed: {
+                  ...s.viewshed,
+                  observer: null,
+                  cells: null,
+                  gridDims: null,
+                  status: 'idle',
+                  errorMessage: undefined,
+                },
+              };
+            }
             // No active tool: clear everything (Esc-while-idle is a no-op for the user
             // but ensures a clean slate if internal state somehow drifted).
             return {
@@ -482,6 +624,14 @@ export const useAppStore = create<AppState>()(
                 polygon: [],
                 finalized: false,
                 samples: null,
+                status: 'idle',
+                errorMessage: undefined,
+              },
+              viewshed: {
+                ...s.viewshed,
+                observer: null,
+                cells: null,
+                gridDims: null,
                 status: 'idle',
                 errorMessage: undefined,
               },

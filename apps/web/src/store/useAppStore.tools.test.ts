@@ -31,6 +31,15 @@ describe('useAppStore — tools slice', () => {
         status: 'idle',
         errorMessage: undefined,
       },
+      viewshed: {
+        observer: null,
+        observerEyeHeightM: 2,
+        maxRangeM: 3000,
+        status: 'idle',
+        errorMessage: undefined,
+        cells: null,
+        gridDims: null,
+      },
     });
   });
 
@@ -250,5 +259,102 @@ describe('useAppStore — tools slice', () => {
     const av = useAppStore.getState().areaVolume;
     expect(av.polygon).toEqual([]);
     expect(av.finalized).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // viewshed slice (D4 — sampled-ray LOS)
+  // -------------------------------------------------------------------------
+
+  it('viewshed: initial state is idle + null observer + default knobs', () => {
+    const v = useAppStore.getState().viewshed;
+    expect(v.observer).toBeNull();
+    expect(v.observerEyeHeightM).toBe(2);
+    expect(v.maxRangeM).toBe(3000);
+    expect(v.status).toBe('idle');
+    expect(v.cells).toBeNull();
+    expect(v.gridDims).toBeNull();
+  });
+
+  it('setViewshedObserver stores the point and flips status to computing', () => {
+    const { setViewshedObserver } = useAppStore.getState();
+    setViewshedObserver(P1);
+    const v = useAppStore.getState().viewshed;
+    expect(v.observer).toEqual(P1);
+    expect(v.status).toBe('computing');
+    expect(v.cells).toBeNull();
+  });
+
+  it('setViewshedEyeHeight and setViewshedMaxRange update knobs without touching observer', () => {
+    const { setViewshedObserver, setViewshedEyeHeight, setViewshedMaxRange } =
+      useAppStore.getState();
+    setViewshedObserver(P1);
+    setViewshedEyeHeight(10);
+    setViewshedMaxRange(5000);
+    const v = useAppStore.getState().viewshed;
+    expect(v.observerEyeHeightM).toBe(10);
+    expect(v.maxRangeM).toBe(5000);
+    expect(v.observer).toEqual(P1);
+  });
+
+  it('setViewshedResult sets cells + gridDims and flips status to ready', () => {
+    const { setViewshedResult } = useAppStore.getState();
+    const cells = new Uint8Array([0, 1, 2, 2]);
+    const bbox = { west: 0, south: 0, east: 1, north: 1 };
+    setViewshedResult({ cells, gridDims: { cols: 2, rows: 2, bbox } });
+    const v = useAppStore.getState().viewshed;
+    expect(v.cells).toBe(cells);
+    expect(v.gridDims).toEqual({ cols: 2, rows: 2, bbox });
+    expect(v.status).toBe('ready');
+  });
+
+  it('resetViewshed clears observer + result but keeps eye height + range', () => {
+    const {
+      setViewshedObserver,
+      setViewshedEyeHeight,
+      setViewshedMaxRange,
+      setViewshedResult,
+      resetViewshed,
+    } = useAppStore.getState();
+    setViewshedEyeHeight(7);
+    setViewshedMaxRange(2500);
+    setViewshedObserver(P1);
+    setViewshedResult({
+      cells: new Uint8Array([2, 2, 2, 2]),
+      gridDims: { cols: 2, rows: 2, bbox: { west: 0, south: 0, east: 1, north: 1 } },
+    });
+    resetViewshed();
+    const v = useAppStore.getState().viewshed;
+    expect(v.observer).toBeNull();
+    expect(v.cells).toBeNull();
+    expect(v.gridDims).toBeNull();
+    expect(v.status).toBe('idle');
+    // Knobs preserved.
+    expect(v.observerEyeHeightM).toBe(7);
+    expect(v.maxRangeM).toBe(2500);
+  });
+
+  it('setActiveTool away from viewshed resets observer + result but keeps knobs', () => {
+    const { setActiveTool, setViewshedObserver, setViewshedEyeHeight, setViewshedMaxRange } =
+      useAppStore.getState();
+    setActiveTool('viewshed');
+    setViewshedEyeHeight(15);
+    setViewshedMaxRange(8000);
+    setViewshedObserver(P1);
+    setActiveTool('distance');
+    const v = useAppStore.getState().viewshed;
+    expect(v.observer).toBeNull();
+    expect(v.status).toBe('idle');
+    expect(v.observerEyeHeightM).toBe(15);
+    expect(v.maxRangeM).toBe(8000);
+  });
+
+  it('clearActiveToolPoints clears viewshed observer when active', () => {
+    const { setActiveTool, setViewshedObserver, clearActiveToolPoints } = useAppStore.getState();
+    setActiveTool('viewshed');
+    setViewshedObserver(P1);
+    clearActiveToolPoints();
+    const v = useAppStore.getState().viewshed;
+    expect(v.observer).toBeNull();
+    expect(v.status).toBe('idle');
   });
 });
