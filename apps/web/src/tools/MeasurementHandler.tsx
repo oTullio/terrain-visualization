@@ -42,7 +42,8 @@ export default function MeasurementHandler() {
       if (
         tool !== 'distance' &&
         tool !== 'elevation-profile' &&
-        tool !== 'area-volume'
+        tool !== 'area-volume' &&
+        tool !== 'viewshed'
       ) {
         return;
       }
@@ -54,8 +55,11 @@ export default function MeasurementHandler() {
         state.addDistancePoint(picked);
       } else if (tool === 'elevation-profile') {
         state.addElevationProfilePoint(picked);
-      } else {
+      } else if (tool === 'area-volume') {
         state.addAreaVolumePoint(picked);
+      } else {
+        // Viewshed is a single-point pick; each click replaces the observer.
+        state.setViewshedObserver(picked);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 

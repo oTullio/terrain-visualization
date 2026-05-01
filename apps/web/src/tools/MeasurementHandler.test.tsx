@@ -62,11 +62,12 @@ vi.mock('./pickPosition.js', () => ({
 
 // Per-test mutable store stub.
 const storeStub = {
-  activeTool: null as 'distance' | 'elevation-profile' | 'area-volume' | null,
+  activeTool: null as 'distance' | 'elevation-profile' | 'area-volume' | 'viewshed' | null,
   addDistancePoint: vi.fn(),
   addElevationProfilePoint: vi.fn(),
   addAreaVolumePoint: vi.fn(),
   finalizeAreaVolumePolygon: vi.fn(),
+  setViewshedObserver: vi.fn(),
   clearActiveToolPoints: vi.fn(),
 };
 vi.mock('../store/useAppStore.js', () => ({
@@ -82,6 +83,7 @@ beforeEach(() => {
   storeStub.addElevationProfilePoint.mockReset();
   storeStub.addAreaVolumePoint.mockReset();
   storeStub.finalizeAreaVolumePolygon.mockReset();
+  storeStub.setViewshedObserver.mockReset();
   storeStub.clearActiveToolPoints.mockReset();
 });
 
@@ -159,5 +161,14 @@ describe('MeasurementHandler', () => {
     render(<MeasurementHandler />);
     fireLeftDoubleClick();
     expect(storeStub.finalizeAreaVolumePolygon).not.toHaveBeenCalled();
+  });
+
+  it('LEFT_CLICK with activeTool=viewshed dispatches setViewshedObserver', () => {
+    storeStub.activeTool = 'viewshed';
+    render(<MeasurementHandler />);
+    fireLeftClick();
+    expect(storeStub.setViewshedObserver).toHaveBeenCalledWith(pickResult);
+    expect(storeStub.addDistancePoint).not.toHaveBeenCalled();
+    expect(storeStub.addAreaVolumePoint).not.toHaveBeenCalled();
   });
 });
