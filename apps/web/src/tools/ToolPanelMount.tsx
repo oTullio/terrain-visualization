@@ -27,6 +27,8 @@ import DistanceTool from './distance/DistanceTool.js';
 import ElevationProfileTool from './elevationProfile/ElevationProfileTool.js';
 import SlopeAspectTool from './slopeAspect/SlopeAspectTool.js';
 import SlopeAspectLayer from './slopeAspect/SlopeAspectLayer.js';
+import AreaVolumeTool from './areaVolume/AreaVolumeTool.js';
+import AreaVolumeLayer from './areaVolume/AreaVolumeLayer.js';
 
 export default function ToolPanelMount() {
   const activeTool = useAppStore((s) => s.activeTool);
@@ -40,19 +42,23 @@ export default function ToolPanelMount() {
     setSlot(document.getElementById('tools-panel-slot'));
   }, [activeTool]);
 
-  // The slope-aspect overlay imagery layer is mounted UNCONDITIONALLY
-  // (always rendered alongside whichever panel is active) so its own
-  // effect can react to activeTool / bbox / mode changes — including
-  // adding the overlay when the tool first activates and removing it on
-  // deactivation. Its own logic guards against doing work when inactive.
-  const slopeAspectLayer = <SlopeAspectLayer />;
+  // Layers that need to react to activeTool changes (turning themselves on
+  // and off as the tool comes and goes) are mounted UNCONDITIONALLY here.
+  // Their own effects early-return when their tool is inactive and clean
+  // up any scene primitives they had added.
+  const sceneLayers = (
+    <>
+      <SlopeAspectLayer />
+      <AreaVolumeLayer />
+    </>
+  );
 
-  if (!slot || activeTool === null) return slopeAspectLayer;
+  if (!slot || activeTool === null) return sceneLayers;
 
   if (activeTool === 'distance') {
     return (
       <>
-        {slopeAspectLayer}
+        {sceneLayers}
         {createPortal(<DistanceTool />, slot)}
       </>
     );
@@ -60,7 +66,7 @@ export default function ToolPanelMount() {
   if (activeTool === 'elevation-profile') {
     return (
       <>
-        {slopeAspectLayer}
+        {sceneLayers}
         {createPortal(<ElevationProfileTool />, slot)}
       </>
     );
@@ -68,10 +74,18 @@ export default function ToolPanelMount() {
   if (activeTool === 'slope-aspect') {
     return (
       <>
-        {slopeAspectLayer}
+        {sceneLayers}
         {createPortal(<SlopeAspectTool />, slot)}
       </>
     );
   }
-  return slopeAspectLayer;
+  if (activeTool === 'area-volume') {
+    return (
+      <>
+        {sceneLayers}
+        {createPortal(<AreaVolumeTool />, slot)}
+      </>
+    );
+  }
+  return sceneLayers;
 }

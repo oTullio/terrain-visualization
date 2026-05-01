@@ -28,11 +28,12 @@ beforeEach(() => {
 });
 
 describe('ToolsPanel', () => {
-  it('renders Distance, Elevation profile, and Slope / aspect buttons', () => {
+  it('renders Distance, Elevation profile, Slope / aspect, and Area / volume buttons', () => {
     render(<ToolsPanel />);
     expect(screen.getByRole('button', { name: 'Distance' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Elevation profile' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Slope / aspect' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Area / volume' })).toBeInTheDocument();
   });
 
   it('marks the active tool button with aria-pressed="true" and the emerald background', () => {
