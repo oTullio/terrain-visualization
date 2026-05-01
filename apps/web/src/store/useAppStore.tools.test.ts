@@ -22,6 +22,15 @@ describe('useAppStore — tools slice', () => {
       distance: { points: [] },
       elevationProfile: { points: [], samples: null },
       slopeAspect: { mode: 'slope', status: { status: 'idle' } },
+      areaVolume: {
+        polygon: [],
+        finalized: false,
+        referenceMode: 'lowest',
+        customReferenceM: 0,
+        samples: null,
+        status: 'idle',
+        errorMessage: undefined,
+      },
     });
   });
 
@@ -150,5 +159,96 @@ describe('useAppStore — tools slice', () => {
     resetElevationProfile();
     expect(useAppStore.getState().elevationProfile.points).toEqual([]);
     expect(useAppStore.getState().elevationProfile.samples).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // areaVolume slice (D3)
+  // -------------------------------------------------------------------------
+
+  it('areaVolume: initial state is empty + idle + lowest', () => {
+    const av = useAppStore.getState().areaVolume;
+    expect(av.polygon).toEqual([]);
+    expect(av.finalized).toBe(false);
+    expect(av.referenceMode).toBe('lowest');
+    expect(av.customReferenceM).toBe(0);
+    expect(av.samples).toBeNull();
+    expect(av.status).toBe('idle');
+  });
+
+  it('addAreaVolumePoint appends and sets status=picking', () => {
+    const { addAreaVolumePoint } = useAppStore.getState();
+    addAreaVolumePoint(P1);
+    addAreaVolumePoint(P2);
+    addAreaVolumePoint(P3);
+    const av = useAppStore.getState().areaVolume;
+    expect(av.polygon).toEqual([P1, P2, P3]);
+    expect(av.finalized).toBe(false);
+    expect(av.status).toBe('picking');
+  });
+
+  it('addAreaVolumePoint after finalize starts a fresh polygon', () => {
+    const { addAreaVolumePoint, finalizeAreaVolumePolygon } = useAppStore.getState();
+    addAreaVolumePoint(P1);
+    addAreaVolumePoint(P2);
+    addAreaVolumePoint(P3);
+    finalizeAreaVolumePolygon();
+    expect(useAppStore.getState().areaVolume.finalized).toBe(true);
+    addAreaVolumePoint(P1);
+    const av = useAppStore.getState().areaVolume;
+    expect(av.polygon).toEqual([P1]);
+    expect(av.finalized).toBe(false);
+  });
+
+  it('finalizeAreaVolumePolygon is a no-op with < 3 vertices', () => {
+    const { addAreaVolumePoint, finalizeAreaVolumePolygon } = useAppStore.getState();
+    addAreaVolumePoint(P1);
+    addAreaVolumePoint(P2);
+    finalizeAreaVolumePolygon();
+    expect(useAppStore.getState().areaVolume.finalized).toBe(false);
+  });
+
+  it('finalizeAreaVolumePolygon with >= 3 vertices flips finalized + status=computing', () => {
+    const { addAreaVolumePoint, finalizeAreaVolumePolygon } = useAppStore.getState();
+    addAreaVolumePoint(P1);
+    addAreaVolumePoint(P2);
+    addAreaVolumePoint(P3);
+    finalizeAreaVolumePolygon();
+    const av = useAppStore.getState().areaVolume;
+    expect(av.finalized).toBe(true);
+    expect(av.status).toBe('computing');
+  });
+
+  it('setActiveTool away from area-volume resets polygon + samples but keeps refMode', () => {
+    const {
+      setActiveTool,
+      addAreaVolumePoint,
+      setAreaVolumeReferenceMode,
+      setAreaVolumeCustomReference,
+    } = useAppStore.getState();
+    setActiveTool('area-volume');
+    setAreaVolumeReferenceMode('mean');
+    setAreaVolumeCustomReference(123);
+    addAreaVolumePoint(P1);
+    addAreaVolumePoint(P2);
+    setActiveTool('distance');
+    const av = useAppStore.getState().areaVolume;
+    expect(av.polygon).toEqual([]);
+    expect(av.finalized).toBe(false);
+    expect(av.status).toBe('idle');
+    // reference-mode preference is sticky
+    expect(av.referenceMode).toBe('mean');
+    expect(av.customReferenceM).toBe(123);
+  });
+
+  it('clearActiveToolPoints clears area-volume polygon when active', () => {
+    const { setActiveTool, addAreaVolumePoint, clearActiveToolPoints } = useAppStore.getState();
+    setActiveTool('area-volume');
+    addAreaVolumePoint(P1);
+    addAreaVolumePoint(P2);
+    addAreaVolumePoint(P3);
+    clearActiveToolPoints();
+    const av = useAppStore.getState().areaVolume;
+    expect(av.polygon).toEqual([]);
+    expect(av.finalized).toBe(false);
   });
 });

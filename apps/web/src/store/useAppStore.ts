@@ -105,6 +105,34 @@ export type SlopeAspectStatus =
   | { status: 'ready'; cols: number; rows: number; resolutionM: number }
   | { status: 'error'; message: string };
 
+/** Area/volume tool state (D3). */
+export type AreaVolumeReferenceMode = 'lowest' | 'mean' | 'custom';
+export type AreaVolumeStatus =
+  | 'idle'
+  | 'picking'
+  | 'computing'
+  | 'ready'
+  | 'error';
+
+/**
+ * Heights sampled inside the polygon. The heights array is dense over the
+ * bbox grid (cols * rows) — entries inside the polygon are valid metres,
+ * entries outside the polygon are NaN. Storing as a Float32Array keeps the
+ * memory footprint compact for large bboxes.
+ *
+ * `cellsInside` is the count of valid (non-NaN) cells; `cellAreaM2` is the
+ * planimetric area per cell (constant — see sampleInsidePolygon).
+ */
+export interface AreaVolumeSamples {
+  heights: Float32Array;
+  cols: number;
+  rows: number;
+  cellAreaM2: number;
+  cellSizeMx: number;
+  cellSizeMy: number;
+  cellsInside: number;
+}
+
 export interface ToolState {
   /** The currently active tool, or null if no tool is active. */
   activeTool: ToolId | null;
@@ -116,6 +144,20 @@ export interface ToolState {
   slopeAspect: {
     mode: SlopeAspectMode;
     status: SlopeAspectStatus;
+  };
+  areaVolume: {
+    polygon: PickedPoint[];
+    finalized: boolean;
+    referenceMode: AreaVolumeReferenceMode;
+    customReferenceM: number;
+    samples: AreaVolumeSamples | null;
+    status: AreaVolumeStatus;
+    /**
+     * Last error message when status === 'error'. We store `undefined`
+     * explicitly (not "missing key") so type-narrowing across the slice
+     * stays predictable under exactOptionalPropertyTypes.
+     */
+    errorMessage: string | undefined;
   };
 }
 
@@ -139,6 +181,18 @@ export interface ToolActions {
   setSlopeAspectMode: (mode: SlopeAspectMode) => void;
   /** Update the slope/aspect computation status (loading/ready/error). */
   setSlopeAspectStatus: (status: SlopeAspectStatus) => void;
+  /**
+   * Append a vertex to the area/volume polygon. If the polygon was
+   * already finalized, the new point starts a fresh polygon.
+   */
+  addAreaVolumePoint: (p: PickedPoint) => void;
+  /** Mark the polygon as closed (double-click). No-op if < 3 vertices. */
+  finalizeAreaVolumePolygon: () => void;
+  setAreaVolumeReferenceMode: (mode: AreaVolumeReferenceMode) => void;
+  setAreaVolumeCustomReference: (metres: number) => void;
+  setAreaVolumeSamples: (samples: AreaVolumeSamples | null) => void;
+  setAreaVolumeStatus: (status: AreaVolumeStatus, errorMessage?: string) => void;
+  resetAreaVolume: () => void;
   /**
    * Clears whichever tool is currently active. If no tool is active,
    * clears all tool state. Used by Esc cancel.
@@ -223,6 +277,15 @@ export const useAppStore = create<AppState>()(
       distance: { points: [] },
       elevationProfile: { points: [], samples: null },
       slopeAspect: { mode: 'slope', status: { status: 'idle' } },
+      areaVolume: {
+        polygon: [],
+        finalized: false,
+        referenceMode: 'lowest',
+        customReferenceM: 0,
+        samples: null,
+        status: 'idle',
+        errorMessage: undefined,
+      },
       setActiveTool: (tool) =>
         set(
           (s) => {
@@ -237,6 +300,17 @@ export const useAppStore = create<AppState>()(
               // The overlay layer cleans itself up via its effect on
               // activeTool change; here we just reset the status to idle.
               next.slopeAspect = { ...s.slopeAspect, status: { status: 'idle' } };
+            } else if (s.activeTool === 'area-volume') {
+              // Reset polygon/sample state but keep the user's reference-mode
+              // preference (it's a UI knob, not data).
+              next.areaVolume = {
+                ...s.areaVolume,
+                polygon: [],
+                finalized: false,
+                samples: null,
+                status: 'idle',
+                errorMessage: undefined,
+              };
             }
             return next;
           },
@@ -290,6 +364,93 @@ export const useAppStore = create<AppState>()(
           false,
           'tools/slopeAspect/setStatus',
         ),
+      addAreaVolumePoint: (p) =>
+        set(
+          (s) => {
+            if (s.areaVolume.finalized) {
+              // The previous polygon was closed; start a fresh one.
+              return {
+                areaVolume: {
+                  ...s.areaVolume,
+                  polygon: [p],
+                  finalized: false,
+                  samples: null,
+                  status: 'picking',
+                  errorMessage: undefined,
+                },
+              };
+            }
+            return {
+              areaVolume: {
+                ...s.areaVolume,
+                polygon: [...s.areaVolume.polygon, p],
+                status: 'picking',
+                errorMessage: undefined,
+              },
+            };
+          },
+          false,
+          'tools/areaVolume/addPoint',
+        ),
+      finalizeAreaVolumePolygon: () =>
+        set(
+          (s) => {
+            if (s.areaVolume.polygon.length < 3) return {};
+            return {
+              areaVolume: {
+                ...s.areaVolume,
+                finalized: true,
+                status: 'computing',
+                errorMessage: undefined,
+              },
+            };
+          },
+          false,
+          'tools/areaVolume/finalize',
+        ),
+      setAreaVolumeReferenceMode: (mode) =>
+        set(
+          (s) => ({ areaVolume: { ...s.areaVolume, referenceMode: mode } }),
+          false,
+          'tools/areaVolume/setRefMode',
+        ),
+      setAreaVolumeCustomReference: (metres) =>
+        set(
+          (s) => ({
+            areaVolume: { ...s.areaVolume, customReferenceM: metres },
+          }),
+          false,
+          'tools/areaVolume/setCustomRef',
+        ),
+      setAreaVolumeSamples: (samples) =>
+        set(
+          (s) => ({ areaVolume: { ...s.areaVolume, samples } }),
+          false,
+          'tools/areaVolume/setSamples',
+        ),
+      setAreaVolumeStatus: (status, errorMessage) =>
+        set(
+          (s) => ({
+            areaVolume: { ...s.areaVolume, status, errorMessage },
+          }),
+          false,
+          'tools/areaVolume/setStatus',
+        ),
+      resetAreaVolume: () =>
+        set(
+          (s) => ({
+            areaVolume: {
+              ...s.areaVolume,
+              polygon: [],
+              finalized: false,
+              samples: null,
+              status: 'idle',
+              errorMessage: undefined,
+            },
+          }),
+          false,
+          'tools/areaVolume/reset',
+        ),
       clearActiveToolPoints: () =>
         set(
           (s) => {
@@ -299,11 +460,31 @@ export const useAppStore = create<AppState>()(
             if (s.activeTool === 'elevation-profile') {
               return { elevationProfile: { points: [], samples: null } };
             }
+            if (s.activeTool === 'area-volume') {
+              return {
+                areaVolume: {
+                  ...s.areaVolume,
+                  polygon: [],
+                  finalized: false,
+                  samples: null,
+                  status: 'idle',
+                  errorMessage: undefined,
+                },
+              };
+            }
             // No active tool: clear everything (Esc-while-idle is a no-op for the user
             // but ensures a clean slate if internal state somehow drifted).
             return {
               distance: { points: [] },
               elevationProfile: { points: [], samples: null },
+              areaVolume: {
+                ...s.areaVolume,
+                polygon: [],
+                finalized: false,
+                samples: null,
+                status: 'idle',
+                errorMessage: undefined,
+              },
             };
           },
           false,
