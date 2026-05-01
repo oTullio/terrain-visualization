@@ -29,6 +29,8 @@ import SlopeAspectTool from './slopeAspect/SlopeAspectTool.js';
 import SlopeAspectLayer from './slopeAspect/SlopeAspectLayer.js';
 import AreaVolumeTool from './areaVolume/AreaVolumeTool.js';
 import AreaVolumeLayer from './areaVolume/AreaVolumeLayer.js';
+import ViewshedTool from './viewshed/ViewshedTool.js';
+import ViewshedLayer from './viewshed/ViewshedLayer.js';
 
 export default function ToolPanelMount() {
   const activeTool = useAppStore((s) => s.activeTool);
@@ -50,6 +52,7 @@ export default function ToolPanelMount() {
     <>
       <SlopeAspectLayer />
       <AreaVolumeLayer />
+      <ViewshedLayer />
     </>
   );
 
@@ -84,6 +87,14 @@ export default function ToolPanelMount() {
       <>
         {sceneLayers}
         {createPortal(<AreaVolumeTool />, slot)}
+      </>
+    );
+  }
+  if (activeTool === 'viewshed') {
+    return (
+      <>
+        {sceneLayers}
+        {createPortal(<ViewshedTool />, slot)}
       </>
     );
   }
