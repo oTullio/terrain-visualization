@@ -1,13 +1,18 @@
 /**
- * SurfaceDrapeLayer — swaps the Cesium viewer's base imagery layer when the
- * active `surfaceDrape` mode changes.
+ * SurfaceDrapeLayer — swaps the Cesium viewer's BASE imagery layer (index 0)
+ * when the active `surfaceDrape` mode changes.
  *
  * ## How it works
  *
  * On mount and on every `surfaceDrape` change:
- *   1. Clear all existing imagery layers (`imageryLayers.removeAll()`).
- *   2. Create a new ImageryLayer via `createImageryLayer(mode)`.
- *   3. Add it as the sole imagery layer (`imageryLayers.add(layer)`).
+ *   1. Read the current base layer (`imageryLayers.get(0)`).
+ *   2. Add the new ImageryLayer at index 0 (so it becomes the new base).
+ *   3. Remove the old base layer.
+ *
+ * Steps 2 → 3 are deliberately ordered so that any *overlay* layers added by
+ * other components (e.g. SlopeAspectLayer at index 1+) keep their relative
+ * z-order and are never clobbered. The previous implementation called
+ * `removeAll()` and would silently delete those overlays.
  *
  * Cesium's `ImageryLayer.fromProviderAsync` wraps the async provider Promises
  * so the layer can be added to the collection before the tiles load — Cesium
@@ -33,10 +38,19 @@ export default function SurfaceDrapeLayer() {
   useEffect(() => {
     if (!viewer || viewer.isDestroyed()) return;
 
-    // Remove all existing imagery layers and add the new one.
-    viewer.imageryLayers.removeAll();
+    // Swap the base layer in place. Read the OLD base first, add the NEW
+    // one at index 0, then remove the old. Any overlay layers added at
+    // higher indices by other components (slope/aspect, future viewshed)
+    // are left untouched and just shift up by one index — which Cesium's
+    // ImageryLayerCollection handles transparently.
+    const oldBase = viewer.imageryLayers.length > 0
+      ? viewer.imageryLayers.get(0)
+      : undefined;
     const layer = createImageryLayer(surfaceDrape);
-    viewer.imageryLayers.add(layer);
+    viewer.imageryLayers.add(layer, 0);
+    if (oldBase) {
+      viewer.imageryLayers.remove(oldBase);
+    }
   }, [viewer, surfaceDrape]);
 
   return null;
