@@ -30,6 +30,7 @@ import LayersStatus from './components/LayersStatus.js';
 import ToolsPanel from './components/ToolsPanel.js';
 import SurfaceDrapeLayer from './terrain/SurfaceDrapeLayer.js';
 import SurfaceDrapeToggle from './components/SurfaceDrapeToggle.js';
+import ExportPanel from './components/ExportPanel.js';
 import MeasurementHandler from './tools/MeasurementHandler.js';
 import ToolPanelMount from './tools/ToolPanelMount.js';
 import { useAppStore } from './store/useAppStore.js';
@@ -83,7 +84,11 @@ export default function App() {
           Terrain Visualizer
         </span>
         <span className="ml-3 text-xs text-gray-500">3D terrain visualizer</span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
+          {/* Slot for ExportPanel — populated via portal from inside <Viewer>
+              so the export buttons can use useCesium() while their DOM lives
+              in the header. See components/ExportPanel.tsx. */}
+          <div id="export-panel-slot" />
           <SurfaceDrapeToggle />
         </div>
       </header>
@@ -114,6 +119,7 @@ export default function App() {
             <RoadsLayer />
             <MeasurementHandler />
             <ToolPanelMount />
+            <ExportPanel />
           </Viewer>
           <LayersStatus />
           <ToolsPanel />
