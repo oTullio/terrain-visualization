@@ -28,6 +28,10 @@ export function useMapLibreMap(containerRef: RefObject<HTMLDivElement | null>): 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    // Touch gestures inherit from MapLibre defaults — pinch zoom, two-finger
+    // pan, and drag pan all work on supported devices without any extra
+    // configuration. We do NOT set `interactive: false` or any of the
+    // individual touch-disabling options (touchZoomRotate, dragPan, etc.).
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: DEMOTILES_STYLE,
