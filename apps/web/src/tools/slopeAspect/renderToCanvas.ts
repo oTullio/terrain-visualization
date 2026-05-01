@@ -167,7 +167,7 @@ export function renderSlopeCanvas(
   // jsdom throws "Not implemented" when calling `getContext('2d')` because
   // node has no native canvas. In tests we don't need the painted bytes;
   // see `buildSlopeAspectRgba` for the unit-tested pixel logic.
-  let ctx: CanvasRenderingContext2D | null = null;
+  let ctx: ReturnType<HTMLCanvasElement['getContext']> = null;
   try {
     ctx = canvas.getContext('2d');
   } catch {

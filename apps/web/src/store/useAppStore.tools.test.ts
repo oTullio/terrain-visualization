@@ -21,6 +21,7 @@ describe('useAppStore — tools slice', () => {
       activeTool: null,
       distance: { points: [] },
       elevationProfile: { points: [], samples: null },
+      slopeAspect: { mode: 'slope', status: { status: 'idle' } },
     });
   });
 
@@ -108,6 +109,35 @@ describe('useAppStore — tools slice', () => {
     expect(useAppStore.getState().distance.points).toEqual([]);
     // elevationProfile.points was untouched.
     expect(useAppStore.getState().elevationProfile.points).toEqual([P2]);
+  });
+
+  it('slopeAspect: defaults to mode="slope" + status idle', () => {
+    const s = useAppStore.getState();
+    expect(s.slopeAspect.mode).toBe('slope');
+    expect(s.slopeAspect.status).toEqual({ status: 'idle' });
+  });
+
+  it('setSlopeAspectMode toggles between slope and aspect without touching status', () => {
+    const { setSlopeAspectMode, setSlopeAspectStatus } = useAppStore.getState();
+    setSlopeAspectStatus({ status: 'loading', cols: 100, rows: 80 });
+    setSlopeAspectMode('aspect');
+    const s = useAppStore.getState();
+    expect(s.slopeAspect.mode).toBe('aspect');
+    expect(s.slopeAspect.status).toEqual({ status: 'loading', cols: 100, rows: 80 });
+  });
+
+  it('switching away from slope-aspect resets its status to idle but keeps the mode', () => {
+    const { setActiveTool, setSlopeAspectMode, setSlopeAspectStatus } =
+      useAppStore.getState();
+    setActiveTool('slope-aspect');
+    setSlopeAspectMode('aspect');
+    setSlopeAspectStatus({ status: 'ready', cols: 64, rows: 64, resolutionM: 30 });
+
+    setActiveTool('distance');
+    const s = useAppStore.getState();
+    expect(s.activeTool).toBe('distance');
+    expect(s.slopeAspect.mode).toBe('aspect'); // mode is sticky across tool switches
+    expect(s.slopeAspect.status).toEqual({ status: 'idle' });
   });
 
   it('resetDistance and resetElevationProfile clear their respective slices', () => {

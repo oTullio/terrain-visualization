@@ -91,6 +91,20 @@ export interface ElevationSample {
   distance: number;
 }
 
+/** Slope/aspect tool state (D2). */
+export type SlopeAspectMode = 'slope' | 'aspect';
+
+/**
+ * Reactive status for the slope/aspect overlay. Distinct from LayerStatus
+ * because the units are different (cell counts, resolution, not feature
+ * cap counts).
+ */
+export type SlopeAspectStatus =
+  | { status: 'idle' }
+  | { status: 'loading'; cols: number; rows: number }
+  | { status: 'ready'; cols: number; rows: number; resolutionM: number }
+  | { status: 'error'; message: string };
+
 export interface ToolState {
   /** The currently active tool, or null if no tool is active. */
   activeTool: ToolId | null;
@@ -98,6 +112,10 @@ export interface ToolState {
   elevationProfile: {
     points: PickedPoint[];
     samples: ElevationSample[] | null;
+  };
+  slopeAspect: {
+    mode: SlopeAspectMode;
+    status: SlopeAspectStatus;
   };
 }
 
@@ -117,6 +135,10 @@ export interface ToolActions {
   addElevationProfilePoint: (p: PickedPoint) => void;
   setElevationSamples: (samples: ElevationSample[]) => void;
   resetElevationProfile: () => void;
+  /** Toggle slope vs aspect display mode. */
+  setSlopeAspectMode: (mode: SlopeAspectMode) => void;
+  /** Update the slope/aspect computation status (loading/ready/error). */
+  setSlopeAspectStatus: (status: SlopeAspectStatus) => void;
   /**
    * Clears whichever tool is currently active. If no tool is active,
    * clears all tool state. Used by Esc cancel.
@@ -200,6 +222,7 @@ export const useAppStore = create<AppState>()(
       activeTool: null,
       distance: { points: [] },
       elevationProfile: { points: [], samples: null },
+      slopeAspect: { mode: 'slope', status: { status: 'idle' } },
       setActiveTool: (tool) =>
         set(
           (s) => {
@@ -210,6 +233,10 @@ export const useAppStore = create<AppState>()(
               next.distance = { points: [] };
             } else if (s.activeTool === 'elevation-profile') {
               next.elevationProfile = { points: [], samples: null };
+            } else if (s.activeTool === 'slope-aspect') {
+              // The overlay layer cleans itself up via its effect on
+              // activeTool change; here we just reset the status to idle.
+              next.slopeAspect = { ...s.slopeAspect, status: { status: 'idle' } };
             }
             return next;
           },
@@ -250,6 +277,18 @@ export const useAppStore = create<AppState>()(
           { elevationProfile: { points: [], samples: null } },
           false,
           'tools/elevationProfile/reset',
+        ),
+      setSlopeAspectMode: (mode) =>
+        set(
+          (s) => ({ slopeAspect: { ...s.slopeAspect, mode } }),
+          false,
+          'tools/slopeAspect/setMode',
+        ),
+      setSlopeAspectStatus: (status) =>
+        set(
+          (s) => ({ slopeAspect: { ...s.slopeAspect, status } }),
+          false,
+          'tools/slopeAspect/setStatus',
         ),
       clearActiveToolPoints: () =>
         set(
