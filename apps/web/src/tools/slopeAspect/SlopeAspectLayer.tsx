@@ -38,12 +38,10 @@ import { useAppStore } from '../../store/useAppStore.js';
 import { sampleHeightGrid } from './sampleGrid.js';
 import { computeSlopeAspect } from './computeSlopeAspect.js';
 import { renderSlopeCanvas } from './renderToCanvas.js';
+import { METRES_PER_DEG_LAT } from '@terrain/shared';
 
 /** Target resolution per cell, in metres. Capped indirectly by GRID_MAX_DIM. */
 export const SLOPE_ASPECT_RESOLUTION_M = 30;
-
-/** Approximate metres per degree of latitude (must match grid.ts). */
-const METRES_PER_DEG_LAT = 111_320;
 
 export default function SlopeAspectLayer() {
   const { viewer } = useCesium();

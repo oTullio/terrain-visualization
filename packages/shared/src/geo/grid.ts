@@ -28,7 +28,7 @@ import type { BoundingBox } from '../types/index.js';
 export const GRID_MAX_DIM = 256;
 
 /** Approximate metres per degree of latitude on a sphere with WGS-84 mean radius. */
-const METRES_PER_DEG_LAT = 111_320;
+export const METRES_PER_DEG_LAT = 111_320;
 
 interface GridCoord {
   lng: number;

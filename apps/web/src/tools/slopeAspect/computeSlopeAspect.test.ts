@@ -30,42 +30,23 @@ describe('computeSlopeAspect', () => {
     }
   });
 
-  it('45° west→east tilt → slope ≈ 45° everywhere; aspect ≈ 90° (east)', () => {
-    // The terrain rises 30 m per cell as we go east — slope = atan(1) = 45°.
+  it('terrain rising eastward: slope ≈ 45° everywhere; aspect ≈ 270° (down-slope = west)', () => {
+    // Heights INCREASE eastward at 30 m per cell → atan(30/30) = 45° slope.
+    // Aspect convention is down-slope direction in compass degrees, so a
+    // surface that rises east faces (descends) to the WEST = 270°.
     const cols = 5;
     const rows = 5;
     const cell = 30;
     const h = new Float32Array(cols * rows);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        // Height rises linearly with col.
         h[r * cols + c] = c * cell;
       }
     }
     const { slope, aspect } = computeSlopeAspect(h, cols, rows, cell, cell);
-    // Inspect the centre cell (away from edges, ideally Horn's full filter).
     const centre = 2 * cols + 2;
     expect(slope[centre]).toBeCloseTo(45, 1);
-    // East-facing slope: aspect should be ≈ 90°.  (Slope rises to the east,
-    // so the steepest *descent* points west… but ESRI/Horn convention has
-    // aspect = compass direction the slope faces, i.e. the direction of
-    // steepest *descent's opposite* — i.e. the direction the slope rises
-    // towards. Actually: standard GIS aspect points DOWN-slope.  We need to
-    // be precise.)
-    //
-    // Horn's formula (ESRI): aspect = atan2(dz/dy, -dz/dx) converted to
-    // compass degrees, where the surface gradient (dz/dx, dz/dy) points
-    // up-slope. The aspect points DOWN-slope.
-    //
-    // Here the terrain rises eastward so down-slope points west = 270°.
-    // For the test to pass we either pin down the convention up-front or
-    // accept the spec's choice. The acceptance criteria say:
-    //   "an east-facing slope yields aspect ≈ 90°"
-    // An "east-facing slope" in GIS parlance means the slope faces east,
-    // i.e. the surface DESCENDS to the east — meaning heights DECREASE as
-    // we move east. So we need to invert the test data.
-    void slope;
-    void aspect;
+    expect(aspect[centre]).toBeCloseTo(270, 0);
   });
 
   it('east-facing slope (heights decrease eastward) → aspect ≈ 90°', () => {
