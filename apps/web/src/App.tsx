@@ -19,7 +19,7 @@
  * from the bbox). This is the stress-test entrypoint — see
  * src/buildings/STRESS_TEST.md.
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Viewer } from 'resium';
 import { Terrain } from 'cesium';
 import SelectionMap from './components/SelectionMap/SelectionMap.js';
@@ -33,6 +33,9 @@ import SurfaceDrapeToggle from './components/SurfaceDrapeToggle.js';
 import ExportPanel from './components/ExportPanel.js';
 import MeasurementHandler from './tools/MeasurementHandler.js';
 import ToolPanelMount from './tools/ToolPanelMount.js';
+import AttributionOverlay from './components/AttributionOverlay.js';
+import AboutButton from './components/AboutButton.js';
+import AboutPanel from './components/AboutPanel.js';
 import { useAppStore } from './store/useAppStore.js';
 import type { BoundingBox } from '@terrain/shared';
 import type { Polygon } from 'geojson';
@@ -66,6 +69,7 @@ function bboxToPolygon(b: BoundingBox): Polygon {
 
 export default function App() {
   const setSelection = useAppStore((s) => s.setSelection);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   // One-shot URL ?bbox= ingestion. Strictly mount-time so user-driven
   // selection changes aren't clobbered.
@@ -89,6 +93,7 @@ export default function App() {
               so the export buttons can use useCesium() while their DOM lives
               in the header. See components/ExportPanel.tsx. */}
           <div id="export-panel-slot" />
+          <AboutButton onClick={() => setAboutOpen(true)} />
           <SurfaceDrapeToggle />
         </div>
       </header>
@@ -122,9 +127,11 @@ export default function App() {
             <ExportPanel />
           </Viewer>
           <LayersStatus />
+          <AttributionOverlay />
           <ToolsPanel />
         </div>
       </div>
+      <AboutPanel open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   );
 }
