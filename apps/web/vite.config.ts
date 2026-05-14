@@ -14,16 +14,16 @@ const cesiumBaseUrl = 'cesium';
 
 // ---------------------------------------------------------------------------
 // Dev-only middleware that exposes /api/<name> handlers (Vercel serverless
-// functions at apps/api/api/<name>.ts) inside the Vite dev server.
+// functions at apps/web/api/<name>.ts) inside the Vite dev server.
 // We adapt Connect's IncomingMessage / ServerResponse into the VercelRequest /
 // VercelResponse shape the handlers expect, then delegate via ssrLoadModule.
 // In production the real Vercel functions are used; this plugin is dev-only.
 //
 // Adding a new layer (e.g. /api/roads in Phase C3) requires NO changes here:
-// the middleware dynamically routes any /api/<name> GET to ../api/api/<name>.ts.
+// the middleware dynamically routes any /api/<name> GET to ./api/<name>.ts.
 // ---------------------------------------------------------------------------
 
-const API_HANDLERS_DIR = path.resolve(__dirname, '../api/api');
+const API_HANDLERS_DIR = path.resolve(__dirname, 'api');
 
 interface VercelLikeReq {
   method: string | undefined;

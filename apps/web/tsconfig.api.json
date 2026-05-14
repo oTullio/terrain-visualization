@@ -1,0 +1,30 @@
+{
+  "//": "Typecheck-only config for the Vercel serverless functions (api/) and their",
+  "//2": "server-side helper code (server/). Kept separate from tsconfig.json because",
+  "//3": "this code runs on Node, not in the browser — different module resolution and",
+  "//4": "no DOM lib. Wired into the `typecheck` and `build` scripts in package.json.",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@terrain/shared": ["../../packages/shared/src/index.ts"]
+    }
+  },
+  "include": [
+    "api/**/*.ts",
+    "server/**/*.ts",
+    "../../packages/shared/src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "../../packages/shared/src/**/*.test.ts",
+    "../../packages/shared/src/**/*.spec.ts"
+  ]
+}

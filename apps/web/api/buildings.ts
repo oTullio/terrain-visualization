@@ -14,8 +14,8 @@
  * X-Cache: HIT | MISS header reflects cache state.
  */
 import { buildingsQuery } from '@terrain/shared';
-import { simplifyBuildings } from '../lib/simplify/buildings.js';
-import { createOverpassHandler } from '../lib/overpassHandler.js';
+import { simplifyBuildings } from '../server/simplify/buildings.js';
+import { createOverpassHandler } from '../server/overpassHandler.js';
 
 export default createOverpassHandler({
   cachePrefix: 'buildings',

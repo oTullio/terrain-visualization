@@ -40,12 +40,14 @@ serverless functions.
 
 ```
 apps/web/         Vite + React + Resium frontend
-apps/api/         Vercel serverless functions (Overpass proxy + cache)
+  api/            Vercel serverless functions (Overpass proxy + cache) — /api/* routes
+  server/         Server-side helpers for the functions (Overpass fetch, cache, simplify)
 packages/shared/  TypeScript types + utilities (bbox math, Overpass QL, grid helpers)
 ```
 
 The workspace is managed by **pnpm workspaces** (`pnpm-workspace.yaml`). Packages reference
-each other as `@terrain/web`, `@terrain/api`, and `@terrain/shared`.
+each other as `@terrain/web` and `@terrain/shared`. The frontend and the serverless API
+ship as one deployable unit — see [Deploy (Vercel)](#deploy-vercel).
 
 ### Data flow
 
@@ -125,7 +127,7 @@ pnpm install
 VITE_CESIUM_ION_TOKEN=<your token from ion.cesium.com>
 ```
 
-**`apps/api` environment** (all optional in local dev):
+**API environment** — read by the serverless functions (all optional in local dev):
 
 | Variable                  | Purpose                                      | Default              |
 |---------------------------|----------------------------------------------|----------------------|
@@ -143,7 +145,7 @@ pnpm --filter @terrain/web dev
 ```
 
 Opens at `http://localhost:5173`. The Vite dev middleware auto-proxies `/api/<name>` requests
-to `apps/api/api/<name>.ts`, so the full stack (frontend + API functions) runs from a single
+to `apps/web/api/<name>.ts`, so the full stack (frontend + API functions) runs from a single
 command with no separate process required.
 
 Alternatively, from the repo root:
@@ -191,44 +193,36 @@ every push and pull request to `main` (Ubuntu latest, Node 20, pnpm 10).
 
 ## Deploy (Vercel)
 
-The app is designed for Vercel. The Hobby tier is sufficient. Vercel treats each app in a
-monorepo as a **separate project**, so this repo deploys as **two linked projects** that
-share the same GitHub repo — one for the frontend, one for the API.
+The app is designed for Vercel. The Hobby tier is sufficient. The frontend and the API
+deploy as a **single Vercel project**: the Vite app is the site, and the serverless
+functions live in `apps/web/api/` — Vercel turns every file there into a `/api/*` route
+on the same domain, so the browser keeps using relative `/api/...` paths.
 
-### 1. Web project (frontend)
+1. Create a new Vercel project from the GitHub repo and set the **Root Directory** to
+   `apps/web`. Vercel auto-detects Vite (Output Directory `dist`) and auto-detects the
+   serverless functions in `apps/web/api/`.
 
-1. Create a new Vercel project from the GitHub repo. Set the **Root Directory** to
-   `apps/web`. Vercel then auto-detects Vite and uses `dist` as the Output Directory.
-   (Setting the Root Directory to the repo root does **not** work — Vercel sees no
-   framework there and defaults the Output Directory to `public`, which doesn't exist.)
-2. `apps/web/vercel.json` rewrites `/api/*` to the API project so the browser can keep
-   using relative `/api/...` paths. **Update the `destination` host** in that file to your
-   API project's production domain (the placeholder is `terrain-visualization-api.vercel.app`).
-3. Set the build-time environment variable:
+   > Do **not** leave the Root Directory at the repo root — Vercel sees no framework
+   > there, defaults the Output Directory to `public`, and the build fails.
 
-   | Variable                | Scope      | Where to get it                |
-   |-------------------------|------------|--------------------------------|
-   | `VITE_CESIUM_ION_TOKEN` | Build-time | ion.cesium.com → Access Tokens |
+2. Set the **environment variables** in the project dashboard:
 
-### 2. API project (serverless functions)
+   | Variable                   | Scope        | Where to get it                |
+   |----------------------------|--------------|--------------------------------|
+   | `VITE_CESIUM_ION_TOKEN`    | Build-time   | ion.cesium.com → Access Tokens |
+   | `UPSTASH_REDIS_REST_URL`   | Runtime      | Upstash via Vercel Marketplace |
+   | `UPSTASH_REDIS_REST_TOKEN` | Runtime      | Upstash via Vercel Marketplace |
 
-1. Create a second Vercel project from the **same** GitHub repo. Set the **Root Directory**
-   to `apps/api`. Vercel reads `apps/api/vercel.json`, which declares the serverless
-   functions under `api/**/*.ts` targeting the `nodejs20.x` runtime.
-2. Set the runtime environment variables:
-
-   | Variable                   | Scope   | Where to get it                |
-   |----------------------------|---------|--------------------------------|
-   | `UPSTASH_REDIS_REST_URL`   | Runtime | Upstash via Vercel Marketplace |
-   | `UPSTASH_REDIS_REST_TOKEN` | Runtime | Upstash via Vercel Marketplace |
-
-### 3. Deploy
-
-Push to `main` — both projects build and deploy from the same commit. Each project's
-install step runs against the pnpm workspace, so `@terrain/shared` resolves correctly.
+3. Push to `main`. Vercel installs against the pnpm workspace (so `@terrain/shared`
+   resolves), runs `pnpm build` in `apps/web`, and deploys the site plus the `/api`
+   functions together.
 
 > `VITE_CESIUM_ION_TOKEN` must be available at **build time** (it is embedded in the
 > compiled JS bundle). The Upstash variables are only read at function invocation time.
+>
+> The server-side helper code the functions import (Overpass fetching, caching,
+> geometry simplification) lives in `apps/web/server/` — outside `apps/web/api/`, so
+> Vercel does not expose it as routes.
 
 ---
 

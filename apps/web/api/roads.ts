@@ -21,8 +21,8 @@
  * try a smaller selection rather than assuming a network problem.
  */
 import { roadsQuery } from '@terrain/shared';
-import { simplifyRoads } from '../lib/simplify/roads.js';
-import { createOverpassHandler } from '../lib/overpassHandler.js';
+import { simplifyRoads } from '../server/simplify/roads.js';
+import { createOverpassHandler } from '../server/overpassHandler.js';
 
 export default createOverpassHandler({
   cachePrefix: 'roads',

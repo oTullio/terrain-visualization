@@ -39,37 +39,6 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  apps/api:
-    dependencies:
-      '@terrain/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
-      '@turf/area':
-        specifier: ^7.3.5
-        version: 7.3.5
-      '@turf/helpers':
-        specifier: ^7.3.5
-        version: 7.3.5
-      '@turf/length':
-        specifier: ^7.3.5
-        version: 7.3.5
-      '@upstash/redis':
-        specifier: ^1.34.9
-        version: 1.37.0
-    devDependencies:
-      '@types/geojson':
-        specifier: ^7946.0.16
-        version: 7946.0.16
-      '@vercel/node':
-        specifier: ^5.0.0
-        version: 5.7.13(rollup@4.60.2)
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
-      vitest:
-        specifier: ^2.0.0
-        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@25.6.0)(jsdom@26.1.0)
-
   apps/web:
     dependencies:
       '@terrain/shared':
@@ -87,6 +56,12 @@ importers:
       '@turf/helpers':
         specifier: ^7.3.5
         version: 7.3.5
+      '@turf/length':
+        specifier: ^7.3.5
+        version: 7.3.5
+      '@upstash/redis':
+        specifier: ^1.34.9
+        version: 1.37.0
       cesium:
         specifier: ^1.140.0
         version: 1.140.0
@@ -130,6 +105,9 @@ importers:
       '@types/three':
         specifier: 0.184.0
         version: 0.184.0
+      '@vercel/node':
+        specifier: ^5.0.0
+        version: 5.7.13(rollup@4.60.2)
       '@vitejs/plugin-react':
         specifier: ^4.5.2
         version: 4.7.0(vite@6.4.2(@types/node@25.6.0)(jiti@1.21.7)(tsx@4.21.0))

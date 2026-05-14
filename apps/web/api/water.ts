@@ -19,8 +19,8 @@
  * rather than assuming it's a network problem.
  */
 import { waterQuery } from '@terrain/shared';
-import { simplifyWater } from '../lib/simplify/water.js';
-import { createOverpassHandler } from '../lib/overpassHandler.js';
+import { simplifyWater } from '../server/simplify/water.js';
+import { createOverpassHandler } from '../server/overpassHandler.js';
 
 export default createOverpassHandler({
   cachePrefix: 'water',

@@ -46,4 +46,4 @@ coverage/
 *.local
 
 # Smoke test scripts (not committed)
-apps/api/scripts/
+apps/web/scripts/
