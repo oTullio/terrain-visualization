@@ -191,24 +191,41 @@ every push and pull request to `main` (Ubuntu latest, Node 20, pnpm 10).
 
 ## Deploy (Vercel)
 
-The app is designed for Vercel. The Hobby tier is sufficient.
+The app is designed for Vercel. The Hobby tier is sufficient. Vercel treats each app in a
+monorepo as a **separate project**, so this repo deploys as **two linked projects** that
+share the same GitHub repo — one for the frontend, one for the API.
 
-1. Connect the GitHub repo to a new Vercel project. Set the **root directory** to the repo
-   root (not a subdirectory). Vercel detects the monorepo automatically.
+### 1. Web project (frontend)
 
-2. Vercel reads `apps/api/vercel.json` which declares the serverless functions under
-   `api/**/*.ts` targeting the `nodejs20.x` runtime. No additional Vercel configuration is
-   required for the API routing.
+1. Create a new Vercel project from the GitHub repo. Set the **Root Directory** to
+   `apps/web`. Vercel then auto-detects Vite and uses `dist` as the Output Directory.
+   (Setting the Root Directory to the repo root does **not** work — Vercel sees no
+   framework there and defaults the Output Directory to `public`, which doesn't exist.)
+2. `apps/web/vercel.json` rewrites `/api/*` to the API project so the browser can keep
+   using relative `/api/...` paths. **Update the `destination` host** in that file to your
+   API project's production domain (the placeholder is `terrain-visualization-api.vercel.app`).
+3. Set the build-time environment variable:
 
-3. Set the following **environment variables** in the Vercel project dashboard:
+   | Variable                | Scope      | Where to get it                |
+   |-------------------------|------------|--------------------------------|
+   | `VITE_CESIUM_ION_TOKEN` | Build-time | ion.cesium.com → Access Tokens |
 
-   | Variable                   | Scope        | Where to get it                        |
-   |----------------------------|--------------|----------------------------------------|
-   | `VITE_CESIUM_ION_TOKEN`    | Build-time   | ion.cesium.com → Access Tokens         |
-   | `UPSTASH_REDIS_REST_URL`   | Runtime      | Upstash via Vercel Marketplace         |
-   | `UPSTASH_REDIS_REST_TOKEN` | Runtime      | Upstash via Vercel Marketplace         |
+### 2. API project (serverless functions)
 
-4. Push to `main`. Vercel builds with `pnpm -r build` and deploys.
+1. Create a second Vercel project from the **same** GitHub repo. Set the **Root Directory**
+   to `apps/api`. Vercel reads `apps/api/vercel.json`, which declares the serverless
+   functions under `api/**/*.ts` targeting the `nodejs20.x` runtime.
+2. Set the runtime environment variables:
+
+   | Variable                   | Scope   | Where to get it                |
+   |----------------------------|---------|--------------------------------|
+   | `UPSTASH_REDIS_REST_URL`   | Runtime | Upstash via Vercel Marketplace |
+   | `UPSTASH_REDIS_REST_TOKEN` | Runtime | Upstash via Vercel Marketplace |
+
+### 3. Deploy
+
+Push to `main` — both projects build and deploy from the same commit. Each project's
+install step runs against the pnpm workspace, so `@terrain/shared` resolves correctly.
 
 > `VITE_CESIUM_ION_TOKEN` must be available at **build time** (it is embedded in the
 > compiled JS bundle). The Upstash variables are only read at function invocation time.
