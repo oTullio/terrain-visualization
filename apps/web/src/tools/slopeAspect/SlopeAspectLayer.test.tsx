@@ -64,7 +64,21 @@ vi.mock('cesium', async () => {
       fromDegrees: vi.fn((...args: number[]) => ({ kind: 'Rect', args })),
     },
     Credit: vi.fn((s: string) => ({ kind: 'Credit', s })),
-    SingleTileImageryProvider: vi.fn(() => ({ kind: 'SingleTileProvider' })),
+    // Mirror Cesium engine ≥24's constructor validation: it throws unless
+    // tileWidth/tileHeight are supplied as numbers.
+    SingleTileImageryProvider: vi.fn(
+      (options: { tileWidth?: unknown; tileHeight?: unknown }) => {
+        if (
+          typeof options?.tileWidth !== 'number' ||
+          typeof options?.tileHeight !== 'number'
+        ) {
+          throw new Error(
+            'Expected options.tileWidth to be typeof number, actual typeof was undefined',
+          );
+        }
+        return { kind: 'SingleTileProvider' };
+      },
+    ),
     ImageryLayer: {
       fromProviderAsync: vi.fn(() => ({ id: `overlay-${++counter}` })),
     },

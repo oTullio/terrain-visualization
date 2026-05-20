@@ -95,7 +95,7 @@ export default function LayersStatus() {
   if (!hasAnything) return null;
 
   return (
-    <div className="absolute top-3 right-3 z-20 max-w-xs pointer-events-none flex flex-col gap-2">
+    <div className="absolute top-3 right-3 z-30 max-w-xs pointer-events-none flex flex-col gap-2">
       {DISPLAY_LAYERS.map(({ id, label }) => (
         <LayerRow
           key={id}

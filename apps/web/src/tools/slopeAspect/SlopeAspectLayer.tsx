@@ -121,8 +121,14 @@ export default function SlopeAspectLayer() {
         const dataUrl = canvas.toDataURL('image/png');
         if (cancelled) return;
 
+        // Cesium engine ≥24 requires the synchronous SingleTileImageryProvider
+        // constructor to be given explicit tile dimensions — it no longer
+        // derives them from the loaded image. The canvas is already sized
+        // cols×rows, so use those directly.
         const provider = new Cesium.SingleTileImageryProvider({
           url: dataUrl,
+          tileWidth: canvas.width,
+          tileHeight: canvas.height,
           rectangle: Cesium.Rectangle.fromDegrees(
             bbox.west,
             bbox.south,
